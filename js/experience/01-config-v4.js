@@ -20,7 +20,7 @@ window.EXPERIENCE_CONFIG = {
       Example:
       final file f_180.webp => frameCount: 180
     */
-    frameCount: 100,
+    frameCount: 121,
 
     prefix: "f_",
     extension: "webp",
@@ -80,6 +80,15 @@ window.EXPERIENCE_CONFIG = {
     textExitStart: 0.72,
     textStartX: 75,
     textExitX: -30
+  },
+
+  sectionTwoLayout: {
+    start: 0.80,
+    end: 0.91,
+    left: 4,
+    top: 12,
+    width: 42,
+    height: 76
   },
 
   performance: {
