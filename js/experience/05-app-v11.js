@@ -48,6 +48,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       ".section-3-content-reveal"
     );
 
+  const sectionThreeToFourCanvas =
+    document.querySelector(
+      ".section-3-noise-ditter-trans"
+    );
+
+  const sectionFour =
+    document.querySelector(".section_4");
+
   const required = {
     stage,
     pin,
@@ -59,9 +67,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     sectionTwoImage,
     transitionTwoCanvas,
     sectionTwoSequenceCanvas,
-    sectionThree,
-    sectionThreeContent,
-    sectionThreeRevealCanvas
+    sectionThree
   };
 
   const missing = Object.entries(required)
@@ -115,6 +121,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     transitionTwoRenderer.resize();
 
     window.PerlinRevealRegistry?.resize();
+    window.DottedTransitionRegistry?.resize();
   }
 
   resizeAll();
@@ -136,6 +143,19 @@ document.addEventListener("DOMContentLoaded", async () => {
   gsap.set(transitionTwoCanvas, { autoAlpha: 0 });
   gsap.set(sectionTwoSequenceCanvas, { autoAlpha: 0 });
   gsap.set(sectionThree, { autoAlpha: 0 });
+
+  if (sectionThreeToFourCanvas) {
+    gsap.set(
+      sectionThreeToFourCanvas,
+      { autoAlpha: 0 }
+    );
+  }
+
+  if (sectionFour) {
+    gsap.set(sectionFour, {
+      autoAlpha: 0
+    });
+  }
 
   let heroFirst;
   let heroLast;
@@ -281,6 +301,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     await window.PerlinRevealReady;
   }
 
+  if (window.DottedTransitionReady) {
+    await window.DottedTransitionReady;
+  }
+
   function drawSequence(
     source,
     renderer,
@@ -421,13 +445,51 @@ document.addEventListener("DOMContentLoaded", async () => {
     invalidateOnRefresh: true,
 
     onUpdate(self) {
-      const p = self.progress;
+      const rawP = self.progress;
       const t = CONFIG.timeline;
 
       /*
-       * Drives every [data-perlin-reveal] instance.
+       * Existing Hero → Section 3 experience uses normalized progress.
+       * The final raw timeline portion is reserved for Section 3 → 4.
+       */
+      const p = Math.min(
+        1,
+        rawP /
+        Math.max(
+          0.001,
+          t.mainExperienceEnd
+        )
+      );
+
+      /*
+       * Drives every [data-perlin-reveal] instance using
+       * the normalized main-experience progress.
        */
       window.PerlinRevealRegistry?.update(p);
+
+      /*
+       * Drives the Section 3 → Section 4 dotted reveal using
+       * raw ScrollTrigger progress.
+       */
+      window.DottedTransitionRegistry?.update(rawP);
+
+      /*
+       * Once the final transition starts, its registry owns visibility
+       * for Section 3, the left image, the transition canvas and Section 4.
+       */
+      if (
+        rawP >=
+        CONFIG.sectionThreeToFour.revealStart
+      ) {
+        if (
+          p >= t.finalHoldStart &&
+          sequenceLast
+        ) {
+          sectionTwoRenderer.draw(sequenceLast);
+        }
+
+        return;
+      }
 
       if (p < t.transitionOneStart) {
         gsap.set(heroSection, { autoAlpha: 1 });
@@ -668,7 +730,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     transitionFolder.open();
     layoutFolder.open();
 
+    window.PerlinRevealRegistry?.addGUI(gui);
+    window.DottedTransitionRegistry?.addGUI(gui);
 
+    window.EXPERIENCE_GUI = gui;
   }
 
   let resizeTimer;
