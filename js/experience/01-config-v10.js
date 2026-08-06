@@ -28,6 +28,13 @@ window.EXPERIENCE_CONFIG = {
   },
 
   timeline: {
+    /*
+     * Raw ScrollTrigger progress allocated to the existing experience.
+     * 0.84 means Hero → Section 3 completes in the first 84%.
+     * The remaining progress is reserved for Section 3 → Section 4.
+     */
+    mainExperienceEnd: 0.84,
+
     heroStart: 0.00,
     heroEnd: 0.28,
 
@@ -153,6 +160,38 @@ window.EXPERIENCE_CONFIG = {
     /*
      * RENDERING
      */
+    maxDPR: 1.5
+  },
+
+
+  sectionThreeToFour: {
+    /*
+     * RAW SCROLL TIMELINE
+     * This transition begins only after Section 3 is fully visible.
+     */
+    revealStart: 0.84,
+    revealEnd: 0.99,
+
+    /*
+     * DOTTED / BLUE-NOISE EDGE
+     * Same visual family used by transition_canvas-2-img.
+     */
+    edgeSoftness: 0.012,
+    shapeScale: 6.5,
+    irregularity: 0.09,
+    dotScale: 2.6,
+    dustBand: 0.15,
+    distortion: 0.006,
+    grain: 0.03,
+    edgeOpacity: 0.72,
+    edgeColor: "#e8dec7",
+
+    /*
+     * Accepted direction:
+     * scrolling down reveals Section 4 from top to bottom.
+     */
+    direction: "Top to bottom",
+
     maxDPR: 1.5
   },
 
