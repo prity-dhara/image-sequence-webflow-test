@@ -21,7 +21,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const heroCanvas = document.querySelector(".hero_canvas-img-seq");
   const sectionTwo = document.querySelector(".section_two");
   const sectionTwoInner = document.querySelector(".section_2-inner-tall");
-  //const sectionTwoImage = document.querySelector(".section_2_img");
+  const sectionTwoImage = document.querySelector(".section_2_img");
   const sectionTwoTexts = gsap.utils.toArray(".section-2_text");
 
   const required = { stage, pin, heroSection, heroCanvas, sectionTwo, sectionTwoInner, sectionTwoImage };
@@ -62,7 +62,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Important: destination comes from the existing HTML image.
     // There is no hardcoded Section 2 image URL in JavaScript.
-    //destinationImage = await loadImageFromHtmlElement(sectionTwoImage);
+    destinationImage = await loadImageFromHtmlElement(sectionTwoImage);
 
     heroRenderer.draw(heroFirst);
     transitionRenderer.setImages(heroLast, destinationImage);
@@ -118,8 +118,16 @@ document.addEventListener("DOMContentLoaded", async () => {
           visibility: fadeProgress >= 0.999 ? "hidden" : "visible"
         });
 
+        const sectionTwoHeight = Math.max(
+          sectionTwoInner.scrollHeight,
+          sectionTwoInner.getBoundingClientRect().height
+        );
+
+        const viewportHeight = pin.clientHeight || innerHeight;
+        const maxSectionTravel = Math.max(0, sectionTwoHeight - viewportHeight);
+
         gsap.set(sectionTwoInner, {
-          y: (-CONFIG.sectionTwo.travelVH * innerHeight * sectionProgress) / 100
+          y: -maxSectionTravel * sectionProgress
         });
 
         sectionTwoTexts.forEach((text, index) => {
