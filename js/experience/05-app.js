@@ -62,7 +62,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Important: destination comes from the existing HTML image.
     // There is no hardcoded Section 2 image URL in JavaScript.
-    destinationImage = await loadImageFromHtmlElement(sectionTwoImage);
+    //destinationImage = await loadImageFromHtmlElement(sectionTwoImage);
 
     heroRenderer.draw(heroFirst);
     transitionRenderer.setImages(heroLast, destinationImage);
