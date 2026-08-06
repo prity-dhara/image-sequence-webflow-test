@@ -31,6 +31,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   const transitionTwoCanvas = document.querySelector(".transition_canvas-2-img");
   const sectionTwoSequenceCanvas = document.querySelector(".section-2-img-seq");
 
+  const sectionThree = document.querySelector(".section_3");
+  const sectionThreeContent = document.querySelector(".section_3-content-wrap");
+  const sectionThreeRevealCanvas = document.querySelector(
+    ".section-3-content-reveal"
+  );
+
   const required = {
     stage,
     pin,
@@ -41,7 +47,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     sectionTwoInner,
     sectionTwoImage,
     transitionTwoCanvas,
-    sectionTwoSequenceCanvas
+    sectionTwoSequenceCanvas,
+    sectionThree,
+    sectionThreeContent,
+    sectionThreeRevealCanvas
   };
 
   const missing = Object.entries(required)
@@ -87,11 +96,27 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     );
 
+  const sectionThreeContentRenderer =
+    new window.SectionThreeContentRevealEngine.ContentDustReveal(
+      sectionThreeRevealCanvas,
+      {
+        softness: 0.035,
+        noiseScale: 7.2,
+        noiseAmount: 0.18,
+        dotScale: 2.2,
+        grain: 0.024,
+        edgeWidth: 0.16,
+        edgeOpacity: 0.75,
+        edgeColor: [0.91, 0.87, 0.78]
+      }
+    );
+
   function resizeAll() {
     heroRenderer.resize();
     sectionTwoRenderer.resize();
     transitionOneRenderer.resize();
     transitionTwoRenderer.resize();
+    sectionThreeContentRenderer.resize();
   }
 
   resizeAll();
@@ -106,6 +131,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   gsap.set(transitionOneCanvas, { autoAlpha: 0 });
   gsap.set(transitionTwoCanvas, { autoAlpha: 0 });
   gsap.set(sectionTwoSequenceCanvas, { autoAlpha: 0 });
+  gsap.set(sectionThree, { autoAlpha: 0 });
+  gsap.set(sectionThreeContent, { autoAlpha: 0 });
+  gsap.set(sectionThreeRevealCanvas, { autoAlpha: 0 });
 
   let heroFirst;
   let heroLast;
@@ -187,6 +215,73 @@ document.addEventListener("DOMContentLoaded", async () => {
     return cropCanvas;
   }
 
+
+  function syncSectionThreeRevealBounds() {
+    const stageRect = pin.getBoundingClientRect();
+    const contentRect =
+      sectionThreeContent.getBoundingClientRect();
+
+    Object.assign(
+      sectionThreeRevealCanvas.style,
+      {
+        left: `${contentRect.left - stageRect.left}px`,
+        top: `${contentRect.top - stageRect.top}px`,
+        width: `${contentRect.width}px`,
+        height: `${contentRect.height}px`
+      }
+    );
+
+    sectionThreeContentRenderer.resize();
+  }
+
+  async function captureSectionThreeContent() {
+    /*
+     * Temporarily reveal the real DOM only for html2canvas capture.
+     */
+    const previousOpacity =
+      sectionThreeContent.style.opacity;
+
+    const previousVisibility =
+      sectionThreeContent.style.visibility;
+
+    gsap.set(sectionThree, {
+      autoAlpha: 1
+    });
+
+    gsap.set(sectionThreeContent, {
+      opacity: 1,
+      visibility: "visible"
+    });
+
+    await document.fonts.ready;
+
+    syncSectionThreeRevealBounds();
+
+    const capture = await html2canvas(
+      sectionThreeContent,
+      {
+        backgroundColor: null,
+        scale: Math.min(
+          devicePixelRatio || 1,
+          1.5
+        ),
+        useCORS: true,
+        logging: false
+      }
+    );
+
+    gsap.set(sectionThreeContent, {
+      opacity: 0,
+      visibility: "hidden"
+    });
+
+    gsap.set(sectionThree, {
+      autoAlpha: 0
+    });
+
+    return capture;
+  }
+
   try {
     heroFirst = await heroSource.initialize();
 
@@ -223,6 +318,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     transitionTwoRenderer.setImages(
       finalViewportCrop,
       sequenceFirst
+    );
+
+    const sectionThreeCapture =
+      await captureSectionThreeContent();
+
+    sectionThreeContentRenderer.setImage(
+      sectionThreeCapture
     );
   } catch (error) {
     console.error(
@@ -380,6 +482,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         gsap.set(transitionOneCanvas, { autoAlpha: 0 });
         gsap.set(sectionTwo, { autoAlpha: 0 });
         gsap.set(transitionTwoCanvas, { autoAlpha: 0 });
+        gsap.set(sectionThree, { autoAlpha: 0 });
+        gsap.set(sectionThreeContent, { autoAlpha: 0 });
+        gsap.set(sectionThreeRevealCanvas, { autoAlpha: 0 });
+
         gsap.set(sectionTwoSequenceCanvas, {
           autoAlpha: 0,
           left: "0%",
@@ -408,6 +514,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         gsap.set(transitionOneCanvas, { autoAlpha: 1 });
         gsap.set(transitionTwoCanvas, { autoAlpha: 0 });
         gsap.set(sectionTwoSequenceCanvas, { autoAlpha: 0 });
+  gsap.set(sectionThree, { autoAlpha: 0 });
+  gsap.set(sectionThreeContent, { autoAlpha: 0 });
+  gsap.set(sectionThreeRevealCanvas, { autoAlpha: 0 });
 
         transitionOneRenderer.progress =
           rangeProgress(
@@ -426,6 +535,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         gsap.set(sectionTwo, { autoAlpha: 1 });
         gsap.set(transitionTwoCanvas, { autoAlpha: 0 });
         gsap.set(sectionTwoSequenceCanvas, { autoAlpha: 0 });
+  gsap.set(sectionThree, { autoAlpha: 0 });
+  gsap.set(sectionThreeContent, { autoAlpha: 0 });
+  gsap.set(sectionThreeRevealCanvas, { autoAlpha: 0 });
 
         renderTallSection(
           rangeProgress(
@@ -487,6 +599,58 @@ document.addEventListener("DOMContentLoaded", async () => {
           t.sectionTwoSequenceEnd
         )
       );
+
+      const sectionThreeFade =
+        rangeProgress(
+          p,
+          0.90,
+          0.95
+        );
+
+      gsap.set(sectionThree, {
+        opacity: sectionThreeFade,
+        visibility:
+          sectionThreeFade <= 0.001
+            ? "hidden"
+            : "visible"
+      });
+
+      const contentReveal =
+        rangeProgress(
+          p,
+          0.925,
+          0.995
+        );
+
+      /*
+       * During the reveal, show only the WebGL capture.
+       * When complete, switch to the real DOM content.
+       */
+      if (contentReveal < 0.999) {
+        gsap.set(sectionThreeContent, {
+          autoAlpha: 0
+        });
+
+        gsap.set(sectionThreeRevealCanvas, {
+          autoAlpha:
+            contentReveal <= 0.001
+              ? 0
+              : 1
+        });
+
+        sectionThreeContentRenderer.progress =
+          contentReveal;
+
+        sectionThreeContentRenderer.render();
+      } else {
+        gsap.set(sectionThreeRevealCanvas, {
+          autoAlpha: 0
+        });
+
+        gsap.set(sectionThreeContent, {
+          autoAlpha: 1
+        });
+      }
 
       if (
         p >= t.finalHoldStart &&
@@ -589,6 +753,43 @@ document.addEventListener("DOMContentLoaded", async () => {
     timelineFolder.open();
     transitionFolder.open();
     layoutFolder.open();
+
+    const sectionThreeFolder =
+      gui.addFolder("Section 3 Content Reveal");
+
+    const contentSettings =
+      sectionThreeContentRenderer.settings;
+
+    sectionThreeFolder
+      .add(contentSettings, "softness", 0.005, 0.2, 0.005)
+      .name("Dissolve spread");
+
+    sectionThreeFolder
+      .add(contentSettings, "noiseScale", 0.5, 14, 0.1)
+      .name("Edge shape scale");
+
+    sectionThreeFolder
+      .add(contentSettings, "noiseAmount", 0, 0.5, 0.005)
+      .name("Edge irregularity");
+
+    sectionThreeFolder
+      .add(contentSettings, "dotScale", 0.5, 5, 0.05)
+      .name("Blue-noise dot scale");
+
+    sectionThreeFolder
+      .add(contentSettings, "grain", 0, 0.12, 0.001)
+      .name("Film grain");
+
+    sectionThreeFolder
+      .add(contentSettings, "edgeWidth", 0.01, 0.35, 0.005)
+      .name("Dust band width");
+
+    sectionThreeFolder
+      .add(contentSettings, "edgeOpacity", 0, 1.5, 0.01)
+      .name("Edge opacity");
+
+    sectionThreeFolder.open();
+
   }
 
   let resizeTimer;
@@ -600,6 +801,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       resizeTimer = setTimeout(() => {
         resizeAll();
+
+        syncSectionThreeRevealBounds();
 
         finalViewportCrop =
           captureFinalViewportCrop();
