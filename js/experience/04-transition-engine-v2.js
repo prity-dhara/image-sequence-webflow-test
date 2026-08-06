@@ -2,7 +2,8 @@ window.TransitionEngine = (() => {
   const CONFIG = window.EXPERIENCE_CONFIG;
 
   class OrganicRectangleReveal {
-    constructor(canvas) {
+    constructor(canvas, settings = null) {
+      this.settings = settings || CONFIG.transition || CONFIG.transitionOne;
       this.canvas = canvas;
       this.progress = 0;
       this.ready = false;
@@ -187,7 +188,7 @@ window.TransitionEngine = (() => {
     render() {
       if (!this.ready) return;
       const gl = this.gl;
-      const s = CONFIG.transition;
+      const s = this.settings;
       const L = this.locations;
 
       gl.viewport(0,0,this.canvas.width,this.canvas.height);
