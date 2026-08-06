@@ -1,5 +1,5 @@
 /**
- * ATTRIBUTE-BASED UNIFIED PERLIN REVEAL
+ * ATTRIBUTE-BASED UNIFIED PERLIN REVEAL V10
  *
  * Activate the effect using only:
  *
@@ -541,26 +541,14 @@
         }
 
         void main() {
-          vec2 ratio = vec2(
-            min(
-              (resolution.x / resolution.y) /
-              (imageResolution.x / imageResolution.y),
-              1.0
-            ),
-            min(
-              (resolution.y / resolution.x) /
-              (imageResolution.y / imageResolution.x),
-              1.0
-            )
-          );
-
-          vec2 uv = vec2(
-            vUv.x * ratio.x +
-            (1.0 - ratio.x) * 0.5,
-
-            vUv.y * ratio.y +
-            (1.0 - ratio.y) * 0.5
-          );
+          /*
+           * CONTENT REVEAL UV
+           *
+           * The captured text texture and the reveal canvas share
+           * the same local wrapper bounds. Use vUv directly so the
+           * heading keeps its original proportions.
+           */
+          vec2 uv = vUv;
 
           float perlin =
             (
@@ -766,8 +754,21 @@
     }
 
     createContentTexture() {
-      const rect =
-        this.wrapper.getBoundingClientRect();
+      /*
+       * Use the wrapper's exact local dimensions.
+       * This texture must have the same aspect ratio as the WebGL canvas.
+       */
+      const width =
+        Math.max(
+          1,
+          this.wrapper.clientWidth
+        );
+
+      const height =
+        Math.max(
+          1,
+          this.wrapper.clientHeight
+        );
 
       const scale =
         Math.min(
@@ -781,27 +782,38 @@
       textureCanvas.width =
         Math.max(
           1,
-          Math.round(rect.width * scale)
+          Math.round(width * scale)
         );
 
       textureCanvas.height =
         Math.max(
           1,
-          Math.round(rect.height * scale)
+          Math.round(height * scale)
         );
 
       const context =
         textureCanvas.getContext("2d");
 
-      context.scale(scale, scale);
+      context.setTransform(
+        scale,
+        0,
+        0,
+        scale,
+        0,
+        0
+      );
+
       context.clearRect(
         0,
         0,
-        rect.width,
-        rect.height
+        width,
+        height
       );
 
       context.textBaseline = "top";
+
+      const wrapperRect =
+        this.wrapper.getBoundingClientRect();
 
       const textElements =
         getTextElements(
@@ -817,16 +829,22 @@
           element.getBoundingClientRect();
 
         const x =
-          elementRect.left - rect.left;
+          elementRect.left -
+          wrapperRect.left;
 
         const y =
-          elementRect.top - rect.top;
+          elementRect.top -
+          wrapperRect.top;
 
-        const width =
-          Math.max(1, elementRect.width);
+        const elementWidth =
+          Math.max(
+            1,
+            elementRect.width
+          );
 
         const fontSize =
-          parseFloat(style.fontSize) || 16;
+          parseFloat(style.fontSize) ||
+          16;
 
         const lineHeight =
           parseFloat(style.lineHeight) ||
@@ -855,9 +873,9 @@
 
         const textX =
           context.textAlign === "center"
-            ? x + width / 2
+            ? x + elementWidth / 2
             : context.textAlign === "right"
-              ? x + width
+              ? x + elementWidth
               : x;
 
         drawWrappedText(
@@ -865,7 +883,7 @@
           element.textContent,
           textX,
           y,
-          width,
+          elementWidth,
           lineHeight
         );
       });
@@ -937,21 +955,35 @@
     }
 
     resize() {
-      const rect =
-        this.canvas.getBoundingClientRect();
-
+      /*
+       * Keep renderer, CSS canvas and captured texture in the same
+       * local coordinate system to prevent horizontal stretching.
+       */
       const width =
-        Math.max(1, rect.width);
+        Math.max(
+          1,
+          this.wrapper.clientWidth
+        );
 
       const height =
-        Math.max(1, rect.height);
+        Math.max(
+          1,
+          this.wrapper.clientHeight
+        );
 
-      this.renderer.setPixelRatio(
+      const dpr =
         Math.min(
           window.devicePixelRatio || 1,
           this.settings.maxDPR
-        )
-      );
+        );
+
+      this.canvas.style.width =
+        `${width}px`;
+
+      this.canvas.style.height =
+        `${height}px`;
+
+      this.renderer.setPixelRatio(dpr);
 
       this.renderer.setSize(
         width,
@@ -960,8 +992,8 @@
       );
 
       this.uniforms.resolution.value.set(
-        width,
-        height
+        width * dpr,
+        height * dpr
       );
     }
 
