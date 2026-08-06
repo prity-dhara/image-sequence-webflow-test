@@ -50,12 +50,35 @@ window.TransitionEngine = (() => {
         float hash(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}
         float blueNoise(vec2 p){return fract(52.9829189*fract(dot(p,vec2(0.06711056,0.00583715))));}
 
-        vec2 coverUv(vec2 uv,vec2 imageSize,vec2 canvasSize){
+        vec2 coverUvCenter(vec2 uv,vec2 imageSize,vec2 canvasSize){
           float ir=imageSize.x/imageSize.y;
           float cr=canvasSize.x/canvasSize.y;
           vec2 s=vec2(1.0),o=vec2(0.0);
-          if(ir>cr){s.x=cr/ir;o.x=(1.0-s.x)*0.5;}
-          else{s.y=ir/cr;o.y=(1.0-s.y)*0.5;}
+
+          if(ir>cr){
+            s.x=cr/ir;
+            o.x=(1.0-s.x)*0.5;
+          } else {
+            s.y=ir/cr;
+            o.y=(1.0-s.y)*0.5;
+          }
+
+          return uv*s+o;
+        }
+
+        vec2 coverUvTop(vec2 uv,vec2 imageSize,vec2 canvasSize){
+          float ir=imageSize.x/imageSize.y;
+          float cr=canvasSize.x/canvasSize.y;
+          vec2 s=vec2(1.0),o=vec2(0.0);
+
+          if(ir>cr){
+            s.x=cr/ir;
+            o.x=(1.0-s.x)*0.5;
+          } else {
+            s.y=ir/cr;
+            o.y=0.0;
+          }
+
           return uv*s+o;
         }
 
@@ -83,8 +106,15 @@ window.TransitionEngine = (() => {
           float reveal=1.0-smoothstep(-uSoftness,uSoftness,distance);
 
           vec2 warp=vec2((pixelNoise-0.5)*uDistortion);
-          vec3 fromColor=texture2D(uFrom,coverUv(uv-warp,uFromSize,uResolution)).rgb;
-          vec3 toColor=texture2D(uTo,coverUv(uv+warp,uToSize,uResolution)).rgb;
+          vec3 fromColor=texture2D(
+            uFrom,
+            coverUvCenter(uv-warp,uFromSize,uResolution)
+          ).rgb;
+
+          vec3 toColor=texture2D(
+            uTo,
+            coverUvTop(uv+warp,uToSize,uResolution)
+          ).rgb;
 
           vec3 color=mix(fromColor,toColor,reveal);
           float edge=1.0-smoothstep(0.0,uEdgeBand,abs(distance));
