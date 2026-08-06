@@ -91,20 +91,69 @@ window.EXPERIENCE_CONFIG = {
     height: 76
   },
 
+
   sectionThree: {
-    // Section 3 panel fades in while the image completes its left layout.
+    /*
+     * SECTION 3 PANEL FADE
+     * The right-side panel begins appearing while the image finishes
+     * its center-left layout movement.
+     */
     fadeStart: 0.90,
-    fadeEnd: 0.93,
+    fadeEnd: 0.93
+  },
 
-    // Unified text reveal starts only after the image is fully placed left.
-    contentRevealStart: 0.91,
-    contentRevealEnd: 0.99,
-
-    // Shader reveal starts partway through its internal dissolve range.
+  perlinReveal: {
+    /*
+     * TIMELINE
+     * Reveal starts after the Section 2 image reaches its left layout.
+     */
+    revealStart: 0.91,
+    revealEnd: 0.99,
     shaderStart: 0.22,
 
-    // Right-side content area width.
-    contentWidth: 50
+    /*
+     * PERLIN NOISE
+     * Large cloudy organic reveal shapes.
+     */
+    noiseX: 8,
+    noiseY: 6,
+    noiseZ: 4,
+    perlinStrength: 0.85,
+
+    /*
+     * BLUE-NOISE BREAKUP
+     * Smaller particles and texture around the reveal edge.
+     */
+    blueNoiseStrength: 0.18,
+
+    /*
+     * ORGANIC EDGE
+     * Controls the softness and width of the dissolve boundary.
+     */
+    edgeWidth: 0.075,
+
+    /*
+     * BLUR HALO
+     * Soft cloudy materialisation before the text becomes sharp.
+     */
+    blurStrength: 1,
+
+    /*
+     * FILM GRAIN
+     * Fine texture applied during the reveal.
+     */
+    grain: 0.025,
+
+    /*
+     * DISTORTION
+     * Subtle texture movement around the reveal front.
+     */
+    distortion: 0.006,
+
+    /*
+     * RENDERING
+     */
+    maxDPR: 1.5
   },
 
   performance: {
