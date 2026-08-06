@@ -2,38 +2,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   "use strict";
 
   if (!window.gsap || !window.ScrollTrigger) {
-    console.error("[experience] GSAP and ScrollTrigger are required.");
+    console.error("[experience-v3] GSAP and ScrollTrigger are required.");
     return;
   }
 
   const { gsap, ScrollTrigger } = window;
   const CONFIG = window.EXPERIENCE_CONFIG;
-
-  const {
-    rangeProgress,
-    loadImageFromHtmlElement
-  } = window.ExperienceUtils;
-
-  const {
-    SequenceSource,
-    CanvasRenderer
-  } = window.SequenceEngine;
-
-  const {
-    OrganicRectangleReveal
-  } = window.TransitionEngine;
+  const { rangeProgress, loadImageFromHtmlElement } = window.ExperienceUtils;
+  const { SequenceSource, CanvasRenderer } = window.SequenceEngine;
+  const { OrganicRectangleReveal } = window.TransitionEngine;
 
   gsap.registerPlugin(ScrollTrigger);
-
-  ScrollTrigger.config({
-    ignoreMobileResize: true
-  });
-
-  /*
-  =====================================================
-  ELEMENTS
-  =====================================================
-  */
+  ScrollTrigger.config({ ignoreMobileResize: true });
 
   const stage = document.querySelector(".section-stage");
   const pin = document.querySelector(".stage-pin");
@@ -41,68 +21,56 @@ document.addEventListener("DOMContentLoaded", async () => {
   const heroSection = document.querySelector(".hero_section");
   const heroCanvas = document.querySelector(".hero_canvas-img-seq");
 
+  const transitionOneCanvas = document.querySelector(".transition_canvas-1");
+
   const sectionTwo = document.querySelector(".section_two");
-  const sectionTwoInner = document.querySelector(
-    ".section_2-inner-tall"
-  );
-
+  const sectionTwoInner = document.querySelector(".section_2-inner-tall");
   const sectionTwoImage = document.querySelector(".section_2_img");
+  const sectionTwoTexts = gsap.utils.toArray(".section-2_text");
 
-  const sectionTwoTexts = gsap.utils.toArray(
-    ".section-2_text"
-  );
-
-  const sectionTwoSequenceCanvas = document.querySelector(
-    ".section-2-img-seq"
-  );
+  const transitionTwoCanvas = document.querySelector(".transition_canvas-2-img");
+  const sectionTwoSequenceCanvas = document.querySelector(".section-2-img-seq");
 
   const required = {
     stage,
     pin,
     heroSection,
     heroCanvas,
+    transitionOneCanvas,
     sectionTwo,
     sectionTwoInner,
     sectionTwoImage,
+    transitionTwoCanvas,
     sectionTwoSequenceCanvas
   };
 
   const missing = Object.entries(required)
-    .filter(([, element]) => !element)
+    .filter(([, value]) => !value)
     .map(([name]) => name);
 
   if (missing.length) {
-    console.error(
-      `[experience] Missing elements: ${missing.join(", ")}`
-    );
-
+    console.error(`[experience-v3] Missing elements: ${missing.join(", ")}`);
     return;
   }
 
-  /*
-  =====================================================
-  TRANSITION CANVAS 1
-  =====================================================
-  */
+  [transitionOneCanvas, transitionTwoCanvas].forEach((canvas, index) => {
+    Object.assign(canvas.style, {
+      position: "absolute",
+      inset: "0",
+      zIndex: index === 0 ? "10" : "11",
+      width: "100%",
+      height: "100%",
+      display: "block",
+      opacity: "0",
+      visibility: "hidden",
+      pointerEvents: "none"
+    });
+  });
 
-  let transitionCanvas =
-    document.querySelector(".transition_canvas-1");
-
-  /*
-    If the Webflow canvas does not exist,
-    create one automatically.
-  */
-
-  if (!transitionCanvas) {
-    transitionCanvas = document.createElement("canvas");
-    transitionCanvas.className = "transition_canvas-1";
-    pin.appendChild(transitionCanvas);
-  }
-
-  Object.assign(transitionCanvas.style, {
+  Object.assign(sectionTwoSequenceCanvas.style, {
     position: "absolute",
     inset: "0",
-    zIndex: "10",
+    zIndex: "7",
     width: "100%",
     height: "100%",
     display: "block",
@@ -111,187 +79,147 @@ document.addEventListener("DOMContentLoaded", async () => {
     pointerEvents: "none"
   });
 
-  /*
-  =====================================================
-  SEQUENCE ENGINES
-  =====================================================
-  */
-
   const heroSource = new SequenceSource(CONFIG.hero);
-
   const heroRenderer = new CanvasRenderer(heroCanvas);
 
-  const sectionTwoSequenceSource = new SequenceSource(
-    CONFIG.sectionTwoSequence
+  const sectionTwoSequenceSource = new SequenceSource(CONFIG.sectionTwoSequence);
+  const sectionTwoSequenceRenderer = new CanvasRenderer(sectionTwoSequenceCanvas);
+
+  const transitionOneRenderer = new OrganicRectangleReveal(
+    transitionOneCanvas,
+    CONFIG.transitionOne
   );
 
-  const sectionTwoSequenceRenderer = new CanvasRenderer(
-    sectionTwoSequenceCanvas
+  const transitionTwoRenderer = new OrganicRectangleReveal(
+    transitionTwoCanvas,
+    CONFIG.transitionTwo
   );
 
-  const transitionRenderer =
-    new OrganicRectangleReveal(transitionCanvas);
+  function resizeAll() {
+    heroRenderer.resize();
+    sectionTwoSequenceRenderer.resize();
+    transitionOneRenderer.resize();
+    transitionTwoRenderer.resize();
+  }
 
-  /*
-  =====================================================
-  INITIAL SIZE
-  =====================================================
-  */
+  resizeAll();
 
-  heroRenderer.resize();
-  sectionTwoSequenceRenderer.resize();
-  transitionRenderer.resize();
-
-  /*
-  =====================================================
-  INITIAL VISIBILITY
-  =====================================================
-  */
-
-  gsap.set(heroSection, {
-    autoAlpha: 1
-  });
-
-  gsap.set(sectionTwo, {
-    autoAlpha: 0
-  });
-
-  gsap.set(sectionTwoInner, {
-    y: 0
-  });
-
+  gsap.set(heroSection, { autoAlpha: 1 });
+  gsap.set(sectionTwo, { autoAlpha: 0 });
+  gsap.set(sectionTwoInner, { y: 0 });
   gsap.set(sectionTwoTexts, {
     opacity: 0,
     xPercent: CONFIG.sectionTwo.textStartX
   });
-
-  gsap.set(sectionTwoSequenceCanvas, {
-    autoAlpha: 0
-  });
-
-  gsap.set(transitionCanvas, {
-    autoAlpha: 0
-  });
-
-  /*
-  =====================================================
-  LOAD IMAGES
-  =====================================================
-  */
+  gsap.set(transitionOneCanvas, { autoAlpha: 0 });
+  gsap.set(transitionTwoCanvas, { autoAlpha: 0 });
+  gsap.set(sectionTwoSequenceCanvas, { autoAlpha: 0 });
 
   let heroFirst;
   let heroLast;
-  let destinationImage;
-  let sectionTwoSequenceFirst;
-  let sectionTwoSequenceLast;
+  let sectionTwoHtmlImage;
+  let sectionTwoFirst;
+  let sectionTwoLast;
 
   try {
     heroFirst = await heroSource.initialize();
+    heroLast = await heroSource.request(CONFIG.hero.frameCount - 1, 3000000);
 
-    heroLast = await heroSource.request(
-      CONFIG.hero.frameCount - 1,
+    sectionTwoHtmlImage = await loadImageFromHtmlElement(sectionTwoImage);
+
+    sectionTwoFirst = await sectionTwoSequenceSource.initialize();
+    sectionTwoLast = await sectionTwoSequenceSource.request(
+      CONFIG.sectionTwoSequence.frameCount - 1,
       3000000
     );
 
-    destinationImage = await loadImageFromHtmlElement(
-      sectionTwoImage
-    );
-
-    sectionTwoSequenceFirst =
-      await sectionTwoSequenceSource.initialize();
-
-    sectionTwoSequenceLast =
-      await sectionTwoSequenceSource.request(
-        CONFIG.sectionTwoSequence.frameCount - 1,
-        3000000
-      );
-
     heroRenderer.draw(heroFirst);
+    sectionTwoSequenceRenderer.draw(sectionTwoFirst);
 
-    sectionTwoSequenceRenderer.draw(
-      sectionTwoSequenceFirst
-    );
+    transitionOneRenderer.setImages(heroLast, sectionTwoHtmlImage);
 
-    transitionRenderer.setImages(
-      heroLast,
-      destinationImage
-    );
+    /*
+      Transition 2 uses:
+      FROM = the natural-height Section 2 HTML image
+      TO   = first frame of the Section 2 image sequence
+
+      Both are top-aligned by the v3 transition shader.
+    */
+    transitionTwoRenderer.setImages(sectionTwoHtmlImage, sectionTwoFirst);
   } catch (error) {
-    console.error(
-      "[experience] Initialization failed:",
-      error
-    );
-
+    console.error("[experience-v3] Initialization failed:", error);
     return;
   }
 
-  /*
-  =====================================================
-  HERO DRAW
-  =====================================================
-  */
+  function drawSequence(source, renderer, config, progress) {
+    const frame = Math.round(progress * (config.frameCount - 1));
 
-  function drawHero(progress) {
-    const frame = Math.round(
-      progress * (CONFIG.hero.frameCount - 1)
-    );
+    source.prioritize(frame);
 
-    heroSource.prioritize(frame);
+    const nearest = source.get(frame);
+    if (nearest) renderer.draw(nearest);
 
-    const nearest = heroSource.get(frame);
-
-    if (nearest) {
-      heroRenderer.draw(nearest);
-    }
-
-    heroSource.request(frame, 500000).then(exact => {
-      if (
-        exact &&
-        heroSource.currentFrame === frame
-      ) {
-        heroRenderer.draw(exact);
+    source.request(frame, 500000).then(exact => {
+      if (exact && source.currentFrame === frame) {
+        renderer.draw(exact);
       }
     });
   }
 
-  /*
-  =====================================================
-  SECTION 2 SEQUENCE DRAW
-  =====================================================
-  */
-
-  function drawSectionTwoSequence(progress) {
-    const frame = Math.round(
-      progress *
-        (CONFIG.sectionTwoSequence.frameCount - 1)
-    );
-
-    sectionTwoSequenceSource.prioritize(frame);
-
-    const nearest =
-      sectionTwoSequenceSource.get(frame);
-
-    if (nearest) {
-      sectionTwoSequenceRenderer.draw(nearest);
-    }
-
-    sectionTwoSequenceSource
-      .request(frame, 500000)
-      .then(exact => {
-        if (
-          exact &&
-          sectionTwoSequenceSource.currentFrame === frame
-        ) {
-          sectionTwoSequenceRenderer.draw(exact);
-        }
-      });
+  function drawHero(progress) {
+    drawSequence(heroSource, heroRenderer, CONFIG.hero, progress);
   }
 
-  /*
-  =====================================================
-  MAIN SCROLL TIMELINE
-  =====================================================
-  */
+  function drawSectionTwoSequence(progress) {
+    drawSequence(
+      sectionTwoSequenceSource,
+      sectionTwoSequenceRenderer,
+      CONFIG.sectionTwoSequence,
+      progress
+    );
+  }
+
+  function renderSectionTwoContent(sectionProgress) {
+    const sectionTwoHeight = Math.max(
+      sectionTwoInner.scrollHeight,
+      sectionTwoInner.getBoundingClientRect().height
+    );
+
+    const viewportHeight = pin.clientHeight || innerHeight;
+    const maxTravel = Math.max(0, sectionTwoHeight - viewportHeight);
+
+    gsap.set(sectionTwoInner, {
+      y: -maxTravel * sectionProgress
+    });
+
+    sectionTwoTexts.forEach((text, index) => {
+      const count = sectionTwoTexts.length;
+      const local = rangeProgress(
+        sectionProgress,
+        index / count,
+        (index + 1) / count
+      );
+
+      const enter = rangeProgress(
+        local,
+        0,
+        CONFIG.sectionTwo.textEnterPortion
+      );
+
+      const exit = rangeProgress(
+        local,
+        CONFIG.sectionTwo.textExitStart,
+        1
+      );
+
+      gsap.set(text, {
+        opacity: enter * (1 - exit),
+        xPercent:
+          gsap.utils.interpolate(CONFIG.sectionTwo.textStartX, 0, enter) +
+          gsap.utils.interpolate(0, CONFIG.sectionTwo.textExitX, exit)
+      });
+    });
+  }
 
   ScrollTrigger.create({
     trigger: stage,
@@ -301,253 +229,166 @@ document.addEventListener("DOMContentLoaded", async () => {
     invalidateOnRefresh: true,
 
     onUpdate(self) {
-      const progress = self.progress;
-      const timeline = CONFIG.timeline;
+      const p = self.progress;
+      const t = CONFIG.timeline;
 
-      /*
-      -----------------------------------------------
-      1. HERO IMAGE SEQUENCE
-      -----------------------------------------------
-      */
+      if (p < t.transitionOneStart) {
+        gsap.set(heroSection, { autoAlpha: 1 });
+        gsap.set(transitionOneCanvas, { autoAlpha: 0 });
+        gsap.set(sectionTwo, { autoAlpha: 0 });
+        gsap.set(transitionTwoCanvas, { autoAlpha: 0 });
+        gsap.set(sectionTwoSequenceCanvas, { autoAlpha: 0 });
 
-      if (progress < timeline.transitionStart) {
-        gsap.set(heroSection, {
-          autoAlpha: 1
-        });
+        drawHero(rangeProgress(p, t.heroStart, t.heroEnd));
+        return;
+      }
 
-        gsap.set(transitionCanvas, {
-          autoAlpha: 0
-        });
+      if (p < t.transitionOneEnd) {
+        gsap.set(heroSection, { autoAlpha: 1 });
+        gsap.set(sectionTwo, { autoAlpha: 0 });
+        gsap.set(transitionOneCanvas, { autoAlpha: 1 });
+        gsap.set(transitionTwoCanvas, { autoAlpha: 0 });
+        gsap.set(sectionTwoSequenceCanvas, { autoAlpha: 0 });
 
-        gsap.set(sectionTwo, {
-          autoAlpha: 0
-        });
-
-        gsap.set(sectionTwoSequenceCanvas, {
-          autoAlpha: 0
-        });
-
-        drawHero(
-          rangeProgress(
-            progress,
-            timeline.heroStart,
-            timeline.heroEnd
-          )
+        transitionOneRenderer.progress = rangeProgress(
+          p,
+          t.transitionOneStart,
+          t.transitionOneEnd
         );
+        transitionOneRenderer.render();
+        return;
       }
 
-      /*
-      -----------------------------------------------
-      2. HERO → SECTION 2 WEBGL TRANSITION
-      -----------------------------------------------
-      */
+      if (p < t.transitionTwoStart) {
+        gsap.set(heroSection, { autoAlpha: 0 });
+        gsap.set(transitionOneCanvas, { autoAlpha: 0 });
+        gsap.set(sectionTwo, { autoAlpha: 1 });
+        gsap.set(transitionTwoCanvas, { autoAlpha: 0 });
+        gsap.set(sectionTwoSequenceCanvas, { autoAlpha: 0 });
 
-      if (
-        progress >= timeline.transitionStart &&
-        progress < timeline.transitionEnd
-      ) {
-        gsap.set(heroSection, {
-          autoAlpha: 1
-        });
-
-        gsap.set(sectionTwo, {
-          autoAlpha: 0
-        });
-
-        gsap.set(sectionTwoSequenceCanvas, {
-          autoAlpha: 0
-        });
-
-        gsap.set(transitionCanvas, {
-          autoAlpha: 1
-        });
-
-        transitionRenderer.progress =
-          rangeProgress(
-            progress,
-            timeline.transitionStart,
-            timeline.transitionEnd
-          );
-
-        transitionRenderer.render();
+        renderSectionTwoContent(
+          rangeProgress(p, t.sectionTwoStart, t.sectionTwoEnd)
+        );
+        return;
       }
 
-      /*
-      -----------------------------------------------
-      3. TALL SECTION 2 IMAGE
-      -----------------------------------------------
-      */
-
-      if (
-        progress >= timeline.sectionTwoStart &&
-        progress < timeline.sectionTwoSequenceStart
-      ) {
-        gsap.set(heroSection, {
-          autoAlpha: 0
-        });
-
-        gsap.set(transitionCanvas, {
-          autoAlpha: 0
-        });
-
-        gsap.set(sectionTwo, {
-          autoAlpha: 1
-        });
-
-        gsap.set(sectionTwoSequenceCanvas, {
-          autoAlpha: 0
-        });
-
-        const sectionProgress =
-          rangeProgress(
-            progress,
-            timeline.sectionTwoStart,
-            timeline.sectionTwoEnd
-          );
-
+      if (p < t.transitionTwoEnd) {
         /*
-          Calculate movement from the actual image height.
+          Keep Section 2 behind the WebGL layer so the handoff has no flash.
         */
+        gsap.set(heroSection, { autoAlpha: 0 });
+        gsap.set(transitionOneCanvas, { autoAlpha: 0 });
+        gsap.set(sectionTwo, { autoAlpha: 1 });
+        gsap.set(sectionTwoSequenceCanvas, { autoAlpha: 0 });
+        gsap.set(transitionTwoCanvas, { autoAlpha: 1 });
 
-        const sectionTwoHeight = Math.max(
-          sectionTwoInner.scrollHeight,
-          sectionTwoInner.getBoundingClientRect().height
+        renderSectionTwoContent(1);
+
+        transitionTwoRenderer.progress = rangeProgress(
+          p,
+          t.transitionTwoStart,
+          t.transitionTwoEnd
         );
-
-        const viewportHeight =
-          pin.clientHeight || innerHeight;
-
-        const maxSectionTravel = Math.max(
-          0,
-          sectionTwoHeight - viewportHeight
-        );
-
-        gsap.set(sectionTwoInner, {
-          y: -maxSectionTravel * sectionProgress
-        });
-
-        /*
-          Section 2 text animations.
-        */
-
-        sectionTwoTexts.forEach((text, index) => {
-          const count = sectionTwoTexts.length;
-
-          const local = rangeProgress(
-            sectionProgress,
-            index / count,
-            (index + 1) / count
-          );
-
-          const enter = rangeProgress(
-            local,
-            0,
-            CONFIG.sectionTwo.textEnterPortion
-          );
-
-          const exit = rangeProgress(
-            local,
-            CONFIG.sectionTwo.textExitStart,
-            1
-          );
-
-          gsap.set(text, {
-            opacity: enter * (1 - exit),
-
-            xPercent:
-              gsap.utils.interpolate(
-                CONFIG.sectionTwo.textStartX,
-                0,
-                enter
-              ) +
-              gsap.utils.interpolate(
-                0,
-                CONFIG.sectionTwo.textExitX,
-                exit
-              )
-          });
-        });
+        transitionTwoRenderer.render();
+        return;
       }
 
-      /*
-      -----------------------------------------------
-      4. SECTION 2 IMAGE SEQUENCE
-      -----------------------------------------------
-      */
+      gsap.set(heroSection, { autoAlpha: 0 });
+      gsap.set(transitionOneCanvas, { autoAlpha: 0 });
+      gsap.set(sectionTwo, { autoAlpha: 0 });
+      gsap.set(transitionTwoCanvas, { autoAlpha: 0 });
+      gsap.set(sectionTwoSequenceCanvas, { autoAlpha: 1 });
 
-      if (
-        progress >= timeline.sectionTwoSequenceStart
-      ) {
-        gsap.set(heroSection, {
-          autoAlpha: 0
-        });
+      const sequenceProgress = rangeProgress(
+        p,
+        t.sectionTwoSequenceStart,
+        t.sectionTwoSequenceEnd
+      );
 
-        gsap.set(transitionCanvas, {
-          autoAlpha: 0
-        });
+      drawSectionTwoSequence(sequenceProgress);
 
-        gsap.set(sectionTwo, {
-          autoAlpha: 0
-        });
-
-        gsap.set(sectionTwoSequenceCanvas, {
-          autoAlpha: 1
-        });
-
-        const sequenceProgress =
-          rangeProgress(
-            progress,
-            timeline.sectionTwoSequenceStart,
-            timeline.sectionTwoSequenceEnd
-          );
-
-        drawSectionTwoSequence(sequenceProgress);
-      }
-
-      /*
-      -----------------------------------------------
-      5. HOLD FINAL SECTION 2 FRAME
-      -----------------------------------------------
-      */
-
-      if (progress >= timeline.finalHoldStart) {
-        gsap.set(sectionTwoSequenceCanvas, {
-          autoAlpha: 1
-        });
-
-        sectionTwoSequenceRenderer.draw(
-          sectionTwoSequenceLast
-        );
+      if (p >= t.finalHoldStart && sectionTwoLast) {
+        sectionTwoSequenceRenderer.draw(sectionTwoLast);
       }
     }
   });
 
-  /*
-  =====================================================
-  RESIZE
-  =====================================================
-  */
+  if (window.dat?.GUI) {
+    const gui = new window.dat.GUI({
+      name: "Experience v3 Controls",
+      width: 350
+    });
+
+    const timelineFolder = gui.addFolder("Timeline");
+    [
+      "heroEnd",
+      "transitionOneStart",
+      "transitionOneEnd",
+      "sectionTwoStart",
+      "sectionTwoEnd",
+      "transitionTwoStart",
+      "transitionTwoEnd",
+      "sectionTwoSequenceStart",
+      "sectionTwoSequenceEnd"
+    ].forEach(key => {
+      timelineFolder
+        .add(CONFIG.timeline, key, 0, 1, 0.001)
+        .name(key)
+        .onChange(() => ScrollTrigger.refresh());
+    });
+
+    function addTransitionFolder(label, settings, renderer) {
+      const folder = gui.addFolder(label);
+
+      [
+        ["startSize", 0.005, 0.15, 0.001],
+        ["cornerRadius", 0, 0.2, 0.001],
+        ["edgeSoftness", 0.001, 0.08, 0.001],
+        ["noiseScale", 100, 1600, 1],
+        ["noiseAmount", 0, 0.2, 0.001],
+        ["edgeBand", 0.001, 0.2, 0.001],
+        ["distortion", 0, 0.05, 0.001],
+        ["grain", 0, 0.08, 0.001],
+        ["centerX", 0.2, 0.8, 0.001],
+        ["centerY", 0.2, 0.8, 0.001]
+      ].forEach(([key, min, max, step]) => {
+        folder
+          .add(settings, key, min, max, step)
+          .name(key)
+          .onChange(() => renderer.render());
+      });
+
+      return folder;
+    }
+
+    addTransitionFolder(
+      "Transition 1",
+      CONFIG.transitionOne,
+      transitionOneRenderer
+    );
+
+    const transitionTwoFolder = addTransitionFolder(
+      "Transition 2 → Sequence",
+      CONFIG.transitionTwo,
+      transitionTwoRenderer
+    );
+
+    timelineFolder.open();
+    transitionTwoFolder.open();
+  }
 
   let resizeTimer;
 
-  window.addEventListener(
+  addEventListener(
     "resize",
     () => {
       clearTimeout(resizeTimer);
-
       resizeTimer = setTimeout(() => {
-        heroRenderer.resize();
-
-        sectionTwoSequenceRenderer.resize();
-
-        transitionRenderer.resize();
-
+        resizeAll();
         ScrollTrigger.refresh();
       }, 180);
     },
-    {
-      passive: true
-    }
+    { passive: true }
   );
 
   ScrollTrigger.refresh();
