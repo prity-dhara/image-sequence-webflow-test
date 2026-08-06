@@ -21,7 +21,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const heroCanvas = document.querySelector(".hero_canvas-img-seq");
   const sectionTwo = document.querySelector(".section_two");
   const sectionTwoInner = document.querySelector(".section_2-inner-tall");
-  const sectionTwoImage = document.querySelector(".section_2_img");
+  //const sectionTwoImage = document.querySelector(".section_2_img");
   const sectionTwoTexts = gsap.utils.toArray(".section-2_text");
 
   const required = { stage, pin, heroSection, heroCanvas, sectionTwo, sectionTwoInner, sectionTwoImage };
