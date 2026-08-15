@@ -8,37 +8,142 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const { gsap, ScrollTrigger } = window;
   const CONFIG = window.EXPERIENCE_CONFIG;
-  const { rangeProgress, loadImageFromHtmlElement } = window.ExperienceUtils;
-  const { SequenceSource, CanvasRenderer } = window.SequenceEngine;
-  const { OrganicRectangleReveal } = window.TransitionEngine;
-  const { BlueNoiseDustTransition } = window.BlueNoiseTransitionEngine;
+
+  // ============================================================
+  // ENGINE SAFETY CHECKS
+  // ============================================================
+
+  if (!CONFIG) {
+    console.error(
+      "[preview] EXPERIENCE_CONFIG is missing. Make sure config.js loads before app.js."
+    );
+    return;
+  }
+
+  if (!window.ExperienceUtils) {
+    console.error(
+      "[preview] ExperienceUtils is missing. Check utils.js."
+    );
+    return;
+  }
+
+  if (!window.SequenceEngine) {
+    console.error(
+      "[preview] SequenceEngine is missing. Check sequence-engine.js."
+    );
+    return;
+  }
+
+  if (!window.TransitionEngine) {
+    console.error(
+      "[preview] TransitionEngine is missing. Check transition-engine.js."
+    );
+    return;
+  }
+
+  if (!window.BlueNoiseTransitionEngine) {
+    console.error(
+      "[preview] BlueNoiseTransitionEngine is missing. Check transition-engine.js."
+    );
+    return;
+  }
+
+  const {
+    rangeProgress,
+    loadImageFromHtmlElement
+  } = window.ExperienceUtils;
+
+  const {
+    SequenceSource,
+    CanvasRenderer
+  } = window.SequenceEngine;
+
+  const {
+    OrganicRectangleReveal
+  } = window.TransitionEngine;
+
+  const {
+    BlueNoiseDustTransition
+  } = window.BlueNoiseTransitionEngine;
+
+  // ============================================================
+  // CLASS SAFETY CHECKS
+  // ============================================================
+
+  if (!OrganicRectangleReveal) {
+    console.error(
+      "[preview] OrganicRectangleReveal is missing from TransitionEngine."
+    );
+    return;
+  }
+
+  if (!BlueNoiseDustTransition) {
+    console.error(
+      "[preview] BlueNoiseDustTransition is missing from BlueNoiseTransitionEngine."
+    );
+    return;
+  }
 
   gsap.registerPlugin(ScrollTrigger);
-  ScrollTrigger.config({ ignoreMobileResize: true });
 
-  const stage = document.querySelector(".section-stage");
-  const pin = document.querySelector(".stage-pin");
+  ScrollTrigger.config({
+    ignoreMobileResize: true
+  });
 
-  const heroSection = document.querySelector(".hero_section");
-  const heroCanvas = document.querySelector(".hero_canvas-img-seq");
-  const heroInitialFrame = document.querySelector(".hero_initial-frame");
-  const transitionOneCanvas = document.querySelector(".transition_canvas-1");
 
-  const sectionTwo = document.querySelector(".section_two");
-  const sectionTwoInner = document.querySelector(".section_2-inner-tall");
-  const sectionTwoImage = document.querySelector(".section_2_img");
-  const sectionTwoTexts = gsap.utils.toArray(".section-2_text");
+  // ============================================================
+  // DOM ELEMENTS
+  // ============================================================
 
-  const transitionTwoCanvas = document.querySelector(".transition_canvas-2-img");
-  const sectionTwoSequenceCanvas = document.querySelector(".section-2-img-seq");
+  const stage =
+    document.querySelector(".section-stage");
+
+  const pin =
+    document.querySelector(".stage-pin");
+
+
+  const heroSection =
+    document.querySelector(".hero_section");
+
+  const heroCanvas =
+    document.querySelector(".hero_canvas-img-seq");
+
+  const heroInitialFrame =
+    document.querySelector(".hero_initial-frame");
+
+  const transitionOneCanvas =
+    document.querySelector(".transition_canvas-1");
+
+
+  const sectionTwo =
+    document.querySelector(".section_two");
+
+  const sectionTwoInner =
+    document.querySelector(".section_2-inner-tall");
+
+  const sectionTwoImage =
+    document.querySelector(".section_2_img");
+
+  const sectionTwoTexts =
+    gsap.utils.toArray(".section-2_text");
+
+
+  const transitionTwoCanvas =
+    document.querySelector(".transition_canvas-2-img");
+
+  const sectionTwoSequenceCanvas =
+    document.querySelector(".section-2-img-seq");
+
 
   const sectionThree =
     document.querySelector(".section_3");
+
 
   const sectionThreeContent =
     document.querySelector(
       "[data-perlin-reveal]"
     );
+
 
   const sectionThreeRevealCanvas =
     sectionThreeContent?.querySelector(
@@ -48,45 +153,92 @@ document.addEventListener("DOMContentLoaded", async () => {
       ".section-3-content-reveal"
     );
 
+
   const sectionThreeToFourCanvas =
     document.querySelector(
       ".section-3-noise-ditter-trans"
     );
 
+
   const sectionFour =
     document.querySelector(".section_4");
+
+
+  // ============================================================
+  // REQUIRED ELEMENT CHECK
+  // ============================================================
 
   const required = {
     stage,
     pin,
+
     heroSection,
     heroCanvas,
     transitionOneCanvas,
+
     sectionTwo,
     sectionTwoInner,
     sectionTwoImage,
+
     transitionTwoCanvas,
     sectionTwoSequenceCanvas,
+
     sectionThree
   };
 
-  const missing = Object.entries(required)
-    .filter(([, element]) => !element)
-    .map(([key]) => key);
+
+  const missing =
+    Object.entries(required)
+      .filter(([, element]) => !element)
+      .map(([key]) => key);
+
 
   if (missing.length) {
-    console.error(`[preview] Missing elements: ${missing.join(", ")}`);
+    console.error(
+      `[preview] Missing elements: ${missing.join(", ")}`
+    );
+
     return;
   }
 
-  const heroSource = new SequenceSource(CONFIG.hero);
-  const heroRenderer = new CanvasRenderer(heroCanvas);
+
+  // ============================================================
+  // IMAGE SEQUENCE ENGINES
+  // ============================================================
+
+  const heroSource =
+    new SequenceSource(
+      CONFIG.hero
+    );
+
+
+  const heroRenderer =
+    new CanvasRenderer(
+      heroCanvas
+    );
+
 
   const sectionTwoSource =
-    new SequenceSource(CONFIG.sectionTwoSequence);
+    new SequenceSource(
+      CONFIG.sectionTwoSequence
+    );
+
 
   const sectionTwoRenderer =
-    new CanvasRenderer(sectionTwoSequenceCanvas);
+    new CanvasRenderer(
+      sectionTwoSequenceCanvas
+    );
+
+
+  // ============================================================
+  // TRANSITION 1
+  // ============================================================
+  //
+  // The class name remains OrganicRectangleReveal for compatibility,
+  // but transition-engine.js can now contain your NEW center reveal
+  // shader inside this class.
+  //
+  // ============================================================
 
   const transitionOneRenderer =
     new OrganicRectangleReveal(
@@ -94,166 +246,356 @@ document.addEventListener("DOMContentLoaded", async () => {
       CONFIG.transitionOne
     );
 
-  /*
-   * Only transition_canvas-2-img uses the new blue-noise dust renderer.
-   */
+
+  // ============================================================
+  // TRANSITION 2
+  // BLUE NOISE DUST
+  // ============================================================
+
   const transitionTwoRenderer =
     new BlueNoiseDustTransition(
       transitionTwoCanvas,
       {
         softness: 0.005,
+
         noiseScale: 6.5,
+
         noiseAmount: 0.09,
+
         dotScale: 2.6,
+
         distortion: 0.006,
+
         grain: 0.03,
+
         edgeWidth: 0.15,
+
         edgeOpacity: 0.72,
-        edgeColor: [0.91, 0.87, 0.78]
+
+        edgeColor: [
+          0.91,
+          0.87,
+          0.78
+        ]
       }
     );
 
 
+  // ============================================================
+  // RESIZE
+  // ============================================================
+
   function resizeAll() {
     heroRenderer.resize();
+
     sectionTwoRenderer.resize();
+
     transitionOneRenderer.resize();
+
     transitionTwoRenderer.resize();
 
     window.PerlinRevealRegistry?.resize();
+
     window.DottedTransitionRegistry?.resize();
   }
 
+
   resizeAll();
 
-  gsap.set(heroSection, { autoAlpha: 1 });
+
+  // ============================================================
+  // INITIAL VISIBILITY
+  // ============================================================
+
+  gsap.set(
+    heroSection,
+    {
+      autoAlpha: 1
+    }
+  );
+
 
   if (heroInitialFrame) {
-    gsap.set(heroInitialFrame, {
-      autoAlpha: 1
-    });
+    gsap.set(
+      heroInitialFrame,
+      {
+        autoAlpha: 1
+      }
+    );
   }
-  gsap.set(sectionTwo, { autoAlpha: 0 });
-  gsap.set(sectionTwoInner, { y: 0 });
-  gsap.set(sectionTwoTexts, {
-    opacity: 0,
-    xPercent: CONFIG.sectionTwo.textStartX
-  });
-  gsap.set(transitionOneCanvas, { autoAlpha: 0 });
-  gsap.set(transitionTwoCanvas, { autoAlpha: 0 });
-  gsap.set(sectionTwoSequenceCanvas, { autoAlpha: 0 });
-  gsap.set(sectionThree, { autoAlpha: 0 });
+
+
+  gsap.set(
+    sectionTwo,
+    {
+      autoAlpha: 0
+    }
+  );
+
+
+  gsap.set(
+    sectionTwoInner,
+    {
+      y: 0
+    }
+  );
+
+
+  gsap.set(
+    sectionTwoTexts,
+    {
+      opacity: 0,
+
+      xPercent:
+        CONFIG.sectionTwo.textStartX
+    }
+  );
+
+
+  gsap.set(
+    transitionOneCanvas,
+    {
+      autoAlpha: 0
+    }
+  );
+
+
+  gsap.set(
+    transitionTwoCanvas,
+    {
+      autoAlpha: 0
+    }
+  );
+
+
+  gsap.set(
+    sectionTwoSequenceCanvas,
+    {
+      autoAlpha: 0
+    }
+  );
+
+
+  gsap.set(
+    sectionThree,
+    {
+      autoAlpha: 0
+    }
+  );
+
 
   if (sectionThreeToFourCanvas) {
     gsap.set(
       sectionThreeToFourCanvas,
-      { autoAlpha: 0 }
+      {
+        autoAlpha: 0
+      }
     );
   }
 
+
   if (sectionFour) {
-    gsap.set(sectionFour, {
-      autoAlpha: 0
-    });
+    gsap.set(
+      sectionFour,
+      {
+        autoAlpha: 0
+      }
+    );
   }
 
+
+  // ============================================================
+  // LOADED ASSETS
+  // ============================================================
+
   let heroFirst;
+
   let heroLast;
+
   let tallImage;
+
   let sequenceFirst;
+
   let sequenceLast;
+
   let finalViewportCrop;
+
+
+  // ============================================================
+  // FINAL SECTION 2 VIEWPORT CROP
+  // ============================================================
 
   function captureFinalViewportCrop() {
     const viewportWidth =
-      pin.clientWidth || innerWidth;
+      pin.clientWidth ||
+      innerWidth;
+
 
     const viewportHeight =
-      pin.clientHeight || innerHeight;
+      pin.clientHeight ||
+      innerHeight;
+
 
     const cropCanvas =
-      document.createElement("canvas");
+      document.createElement(
+        "canvas"
+      );
 
-    const dpr = matchMedia(
-      "(max-width: 767px)"
-    ).matches
-      ? 1
-      : Math.min(
-          devicePixelRatio || 1,
-          CONFIG.performance.desktopDPR
-        );
 
-    cropCanvas.width = Math.max(
-      1,
-      Math.round(viewportWidth * dpr)
-    );
+    const dpr =
+      matchMedia(
+        "(max-width: 767px)"
+      ).matches
 
-    cropCanvas.height = Math.max(
-      1,
-      Math.round(viewportHeight * dpr)
-    );
+        ? 1
 
-    const context = cropCanvas.getContext("2d");
+        : Math.min(
+            devicePixelRatio || 1,
+
+            CONFIG.performance.desktopDPR
+          );
+
+
+    cropCanvas.width =
+      Math.max(
+        1,
+
+        Math.round(
+          viewportWidth *
+          dpr
+        )
+      );
+
+
+    cropCanvas.height =
+      Math.max(
+        1,
+
+        Math.round(
+          viewportHeight *
+          dpr
+        )
+      );
+
+
+    const context =
+      cropCanvas.getContext("2d");
+
 
     const naturalWidth =
       tallImage.naturalWidth;
 
+
     const naturalHeight =
       tallImage.naturalHeight;
 
+
     const renderedScale =
-      viewportWidth / naturalWidth;
+      viewportWidth /
+      naturalWidth;
+
 
     const renderedHeight =
-      naturalHeight * renderedScale;
+      naturalHeight *
+      renderedScale;
+
 
     /*
-     * The image ends at the bottom of the pinned viewport.
-     * Capture exactly that final visible area.
+     * The image ends at the bottom
+     * of the pinned viewport.
+     *
+     * Capture exactly the final
+     * visible viewport.
      */
+
     const visibleRenderedHeight =
-      Math.min(viewportHeight, renderedHeight);
+      Math.min(
+        viewportHeight,
+        renderedHeight
+      );
+
 
     const sourceVisibleHeight =
-      visibleRenderedHeight / renderedScale;
+      visibleRenderedHeight /
+      renderedScale;
 
-    const sourceY = Math.max(
-      0,
-      naturalHeight - sourceVisibleHeight
-    );
+
+    const sourceY =
+      Math.max(
+        0,
+
+        naturalHeight -
+        sourceVisibleHeight
+      );
+
 
     context.drawImage(
       tallImage,
+
       0,
       sourceY,
+
       naturalWidth,
       sourceVisibleHeight,
+
       0,
       0,
+
       cropCanvas.width,
       cropCanvas.height
     );
+
 
     return cropCanvas;
   }
 
 
+  // ============================================================
+  // INITIAL LOAD
+  // ============================================================
 
   try {
-    heroFirst = await heroSource.initialize();
 
-    heroLast = await heroSource.request(
-      CONFIG.hero.frameCount - 1,
-      3000000
-    );
+    // ----------------------------------------------------------
+    // HERO FIRST FRAME
+    // ----------------------------------------------------------
+
+    heroFirst =
+      await heroSource.initialize();
+
+
+    // ----------------------------------------------------------
+    // HERO LAST FRAME
+    // ----------------------------------------------------------
+
+    heroLast =
+      await heroSource.request(
+        CONFIG.hero.frameCount - 1,
+        3000000
+      );
+
+
+    // ----------------------------------------------------------
+    // SECTION 2 TALL IMAGE
+    // ----------------------------------------------------------
 
     tallImage =
       await loadImageFromHtmlElement(
         sectionTwoImage
       );
 
+
+    // ----------------------------------------------------------
+    // SECTION 2 SEQUENCE FIRST FRAME
+    // ----------------------------------------------------------
+
     sequenceFirst =
       await sectionTwoSource.initialize();
+
+
+    // ----------------------------------------------------------
+    // SECTION 2 SEQUENCE LAST FRAME
+    // ----------------------------------------------------------
 
     sequenceLast =
       await sectionTwoSource.request(
@@ -261,25 +603,68 @@ document.addEventListener("DOMContentLoaded", async () => {
         3000000
       );
 
-    heroRenderer.draw(heroFirst);
+
+    // ----------------------------------------------------------
+    // DRAW HERO
+    // ----------------------------------------------------------
+
+    heroRenderer.draw(
+      heroFirst
+    );
+
 
     if (heroInitialFrame) {
-      gsap.to(heroInitialFrame, {
-        autoAlpha: 0,
-        duration: 0.25,
-        ease: "none"
-      });
+      gsap.to(
+        heroInitialFrame,
+        {
+          autoAlpha: 0,
+
+          duration: 0.25,
+
+          ease: "none"
+        }
+      );
     }
 
-    sectionTwoRenderer.draw(sequenceFirst);
+
+    // ----------------------------------------------------------
+    // DRAW SECTION 2 SEQUENCE FIRST FRAME
+    // ----------------------------------------------------------
+
+    sectionTwoRenderer.draw(
+      sequenceFirst
+    );
+
+
+    // ----------------------------------------------------------
+    // TRANSITION 1 IMAGES
+    //
+    // Hero final frame
+    //       ↓
+    // Tall section image
+    // ----------------------------------------------------------
 
     transitionOneRenderer.setImages(
       heroLast,
       tallImage
     );
 
+
+    // ----------------------------------------------------------
+    // CREATE FINAL VIEWPORT CROP
+    // ----------------------------------------------------------
+
     finalViewportCrop =
       captureFinalViewportCrop();
+
+
+    // ----------------------------------------------------------
+    // TRANSITION 2 IMAGES
+    //
+    // Tall-image final crop
+    //       ↓
+    // Sequence 2 frame 001
+    // ----------------------------------------------------------
 
     transitionTwoRenderer.setImages(
       finalViewportCrop,
@@ -287,23 +672,37 @@ document.addEventListener("DOMContentLoaded", async () => {
     );
 
   } catch (error) {
+
     console.error(
       "[preview] Initialization failed:",
       error
     );
+
     return;
   }
 
-  /*
-   * Wait for the attribute-based Perlin reveal engine.
-   */
-  if (window.PerlinRevealReady) {
+
+  // ============================================================
+  // ATTRIBUTE-BASED REVEAL ENGINES
+  // ============================================================
+
+  if (
+    window.PerlinRevealReady
+  ) {
     await window.PerlinRevealReady;
   }
 
-  if (window.DottedTransitionReady) {
+
+  if (
+    window.DottedTransitionReady
+  ) {
     await window.DottedTransitionReady;
   }
+
+
+  // ============================================================
+  // DRAW SEQUENCE
+  // ============================================================
 
   function drawSequence(
     source,
@@ -311,327 +710,780 @@ document.addEventListener("DOMContentLoaded", async () => {
     sourceConfig,
     progress
   ) {
-    const frame = Math.round(
-      progress *
-      (sourceConfig.frameCount - 1)
+
+    const frame =
+      Math.round(
+        progress *
+        (
+          sourceConfig.frameCount -
+          1
+        )
+      );
+
+
+    source.prioritize(
+      frame
     );
 
-    source.prioritize(frame);
 
-    const nearest = source.get(frame);
+    const nearest =
+      source.get(
+        frame
+      );
+
 
     if (nearest) {
-      renderer.draw(nearest);
+      renderer.draw(
+        nearest
+      );
     }
 
-    source.request(frame, 500000)
-      .then(exact => {
-        if (
-          exact &&
-          source.currentFrame === frame
-        ) {
-          renderer.draw(exact);
+
+    source
+      .request(
+        frame,
+        500000
+      )
+      .then(
+        exact => {
+
+          if (
+            exact &&
+            source.currentFrame === frame
+          ) {
+
+            renderer.draw(
+              exact
+            );
+          }
         }
-      });
+      );
   }
 
-  function renderTallSection(progress) {
-    const contentHeight = Math.max(
-      sectionTwoInner.scrollHeight,
-      sectionTwoInner.getBoundingClientRect().height
-    );
+
+  // ============================================================
+  // SECTION 2 TALL IMAGE SCROLL
+  // ============================================================
+
+  function renderTallSection(
+    progress
+  ) {
+
+    const contentHeight =
+      Math.max(
+        sectionTwoInner.scrollHeight,
+
+        sectionTwoInner
+          .getBoundingClientRect()
+          .height
+      );
+
 
     const viewportHeight =
-      pin.clientHeight || innerHeight;
+      pin.clientHeight ||
+      innerHeight;
 
-    const maxTravel = Math.max(
-      0,
-      contentHeight - viewportHeight
+
+    const maxTravel =
+      Math.max(
+        0,
+
+        contentHeight -
+        viewportHeight
+      );
+
+
+    gsap.set(
+      sectionTwoInner,
+      {
+        y:
+          -maxTravel *
+          progress
+      }
     );
 
-    gsap.set(sectionTwoInner, {
-      y: -maxTravel * progress
-    });
 
     sectionTwoTexts.forEach(
       (text, index) => {
+
         const count =
           sectionTwoTexts.length;
 
-        const local = rangeProgress(
-          progress,
-          index / count,
-          (index + 1) / count
-        );
 
-        const enter = rangeProgress(
-          local,
-          0,
-          CONFIG.sectionTwo.textEnterPortion
-        );
+        const local =
+          rangeProgress(
+            progress,
 
-        const exit = rangeProgress(
-          local,
-          CONFIG.sectionTwo.textExitStart,
-          1
-        );
+            index /
+            count,
 
-        gsap.set(text, {
-          opacity: enter * (1 - exit),
-          xPercent:
-            gsap.utils.interpolate(
-              CONFIG.sectionTwo.textStartX,
-              0,
-              enter
-            ) +
-            gsap.utils.interpolate(
-              0,
-              CONFIG.sectionTwo.textExitX,
-              exit
-            )
-        });
+            (index + 1) /
+            count
+          );
+
+
+        const enter =
+          rangeProgress(
+            local,
+
+            0,
+
+            CONFIG.sectionTwo
+              .textEnterPortion
+          );
+
+
+        const exit =
+          rangeProgress(
+            local,
+
+            CONFIG.sectionTwo
+              .textExitStart,
+
+            1
+          );
+
+
+        gsap.set(
+          text,
+          {
+            opacity:
+              enter *
+              (
+                1 -
+                exit
+              ),
+
+            xPercent:
+
+              gsap.utils.interpolate(
+                CONFIG.sectionTwo.textStartX,
+                0,
+                enter
+              )
+
+              +
+
+              gsap.utils.interpolate(
+                0,
+                CONFIG.sectionTwo.textExitX,
+                exit
+              )
+          }
+        );
       }
     );
   }
 
-  function applySectionTwoLayout(totalProgress) {
-    const layout = CONFIG.sectionTwoLayout;
 
-    const layoutProgress = rangeProgress(
-      totalProgress,
-      layout.start,
-      layout.end
+  // ============================================================
+  // SECTION 2 SEQUENCE LAYOUT
+  // ============================================================
+
+  function applySectionTwoLayout(
+    totalProgress
+  ) {
+
+    const layout =
+      CONFIG.sectionTwoLayout;
+
+
+    const layoutProgress =
+      rangeProgress(
+        totalProgress,
+
+        layout.start,
+
+        layout.end
+      );
+
+
+    const left =
+      gsap.utils.interpolate(
+        0,
+        layout.left,
+        layoutProgress
+      );
+
+
+    const top =
+      gsap.utils.interpolate(
+        0,
+        layout.top,
+        layoutProgress
+      );
+
+
+    const width =
+      gsap.utils.interpolate(
+        100,
+        layout.width,
+        layoutProgress
+      );
+
+
+    const height =
+      gsap.utils.interpolate(
+        100,
+        layout.height,
+        layoutProgress
+      );
+
+
+    gsap.set(
+      sectionTwoSequenceCanvas,
+      {
+        left:
+          `${left}%`,
+
+        top:
+          `${top}%`,
+
+        width:
+          `${width}%`,
+
+        height:
+          `${height}%`
+      }
     );
 
-    const left = gsap.utils.interpolate(
-      0,
-      layout.left,
-      layoutProgress
-    );
-
-    const top = gsap.utils.interpolate(
-      0,
-      layout.top,
-      layoutProgress
-    );
-
-    const width = gsap.utils.interpolate(
-      100,
-      layout.width,
-      layoutProgress
-    );
-
-    const height = gsap.utils.interpolate(
-      100,
-      layout.height,
-      layoutProgress
-    );
-
-    gsap.set(sectionTwoSequenceCanvas, {
-      left: `${left}%`,
-      top: `${top}%`,
-      width: `${width}%`,
-      height: `${height}%`
-    });
 
     sectionTwoRenderer.resize();
   }
 
+
+  // ============================================================
+  // MAIN SCROLLTRIGGER
+  // ============================================================
+
   ScrollTrigger.create({
-    trigger: stage,
-    start: "top top",
-    end: "bottom bottom",
-    scrub: CONFIG.timeline.scrub,
-    invalidateOnRefresh: true,
+
+    trigger:
+      stage,
+
+
+    start:
+      "top top",
+
+
+    end:
+      "bottom bottom",
+
+
+    scrub:
+      CONFIG.timeline.scrub,
+
+
+    invalidateOnRefresh:
+      true,
+
 
     onUpdate(self) {
-      const rawP = self.progress;
-      const t = CONFIG.timeline;
+
+      const rawP =
+        self.progress;
+
+
+      const t =
+        CONFIG.timeline;
+
 
       /*
-       * Existing Hero → Section 3 experience uses normalized progress.
-       * The final raw timeline portion is reserved for Section 3 → 4.
+       * Existing Hero → Section 3 experience
+       * uses normalized progress.
+       *
+       * Final raw timeline portion is reserved
+       * for Section 3 → Section 4.
        */
-      const p = Math.min(
-        1,
-        rawP /
-        Math.max(
-          0.001,
-          t.mainExperienceEnd
-        )
-      );
 
-      /*
-       * Drives every [data-perlin-reveal] instance using
-       * the normalized main-experience progress.
-       */
-      window.PerlinRevealRegistry?.update(p);
+      const p =
+        Math.min(
+          1,
 
-      /*
-       * Drives the Section 3 → Section 4 dotted reveal using
-       * raw ScrollTrigger progress.
-       */
-      window.DottedTransitionRegistry?.update(rawP);
+          rawP /
 
-      /*
-       * Once the final transition starts, its registry owns visibility
-       * for Section 3, the left image, the transition canvas and Section 4.
-       */
+          Math.max(
+            0.001,
+
+            t.mainExperienceEnd
+          )
+        );
+
+
+      // ========================================================
+      // SECTION 3 PERLIN REVEAL
+      // ========================================================
+
+      window.PerlinRevealRegistry
+        ?.update(
+          p
+        );
+
+
+      // ========================================================
+      // SECTION 3 → SECTION 4 DOTTED TRANSITION
+      // ========================================================
+
+      window.DottedTransitionRegistry
+        ?.update(
+          rawP
+        );
+
+
+      // ========================================================
+      // FINAL TRANSITION OWNS VISIBILITY
+      // ========================================================
+
       if (
         rawP >=
         CONFIG.sectionThreeToFour.revealStart
       ) {
+
         if (
-          p >= t.finalHoldStart &&
+          p >=
+            t.finalHoldStart &&
+
           sequenceLast
         ) {
-          sectionTwoRenderer.draw(sequenceLast);
+
+          sectionTwoRenderer.draw(
+            sequenceLast
+          );
         }
+
 
         return;
       }
 
-      if (p < t.transitionOneStart) {
-        gsap.set(heroSection, { autoAlpha: 1 });
-        gsap.set(transitionOneCanvas, { autoAlpha: 0 });
-        gsap.set(sectionTwo, { autoAlpha: 0 });
-        gsap.set(transitionTwoCanvas, { autoAlpha: 0 });
-        gsap.set(sectionThree, { autoAlpha: 0 });
-            
-        gsap.set(sectionTwoSequenceCanvas, {
-          autoAlpha: 0,
-          left: "0%",
-          top: "0%",
-          width: "100%",
-          height: "100%"
-        });
+
+      // ========================================================
+      // 1. HERO IMAGE SEQUENCE
+      // ========================================================
+
+      if (
+        p <
+        t.transitionOneStart
+      ) {
+
+        gsap.set(
+          heroSection,
+          {
+            autoAlpha: 1
+          }
+        );
+
+
+        gsap.set(
+          transitionOneCanvas,
+          {
+            autoAlpha: 0
+          }
+        );
+
+
+        gsap.set(
+          sectionTwo,
+          {
+            autoAlpha: 0
+          }
+        );
+
+
+        gsap.set(
+          transitionTwoCanvas,
+          {
+            autoAlpha: 0
+          }
+        );
+
+
+        gsap.set(
+          sectionThree,
+          {
+            autoAlpha: 0
+          }
+        );
+
+
+        gsap.set(
+          sectionTwoSequenceCanvas,
+          {
+            autoAlpha: 0,
+
+            left: "0%",
+
+            top: "0%",
+
+            width: "100%",
+
+            height: "100%"
+          }
+        );
+
 
         drawSequence(
           heroSource,
+
           heroRenderer,
+
           CONFIG.hero,
+
           rangeProgress(
             p,
+
             t.heroStart,
+
             t.heroEnd
           )
         );
 
+
         return;
       }
 
-      if (p < t.transitionOneEnd) {
-        gsap.set(heroSection, { autoAlpha: 1 });
-        gsap.set(sectionTwo, { autoAlpha: 0 });
-        gsap.set(transitionOneCanvas, { autoAlpha: 1 });
-        gsap.set(transitionTwoCanvas, { autoAlpha: 0 });
-        gsap.set(sectionTwoSequenceCanvas, { autoAlpha: 0 });
-  gsap.set(sectionThree, { autoAlpha: 0 });
+
+      // ========================================================
+      // 2. TRANSITION ONE
+      //
+      // NEW CENTER REVEAL
+      // ========================================================
+
+      if (
+        p <
+        t.transitionOneEnd
+      ) {
+
+        gsap.set(
+          heroSection,
+          {
+            autoAlpha: 1
+          }
+        );
+
+
+        gsap.set(
+          sectionTwo,
+          {
+            autoAlpha: 0
+          }
+        );
+
+
+        gsap.set(
+          transitionOneCanvas,
+          {
+            autoAlpha: 1
+          }
+        );
+
+
+        gsap.set(
+          transitionTwoCanvas,
+          {
+            autoAlpha: 0
+          }
+        );
+
+
+        gsap.set(
+          sectionTwoSequenceCanvas,
+          {
+            autoAlpha: 0
+          }
+        );
+
+
+        gsap.set(
+          sectionThree,
+          {
+            autoAlpha: 0
+          }
+        );
+
 
         transitionOneRenderer.progress =
           rangeProgress(
             p,
+
             t.transitionOneStart,
+
             t.transitionOneEnd
           );
 
+
         transitionOneRenderer.render();
+
+
         return;
       }
 
-      if (p < t.transitionTwoStart) {
-        gsap.set(heroSection, { autoAlpha: 0 });
-        gsap.set(transitionOneCanvas, { autoAlpha: 0 });
-        gsap.set(sectionTwo, { autoAlpha: 1 });
-        gsap.set(transitionTwoCanvas, { autoAlpha: 0 });
-        gsap.set(sectionTwoSequenceCanvas, { autoAlpha: 0 });
-  gsap.set(sectionThree, { autoAlpha: 0 });
+
+      // ========================================================
+      // 3. SECTION TWO TALL IMAGE
+      // ========================================================
+
+      if (
+        p <
+        t.transitionTwoStart
+      ) {
+
+        gsap.set(
+          heroSection,
+          {
+            autoAlpha: 0
+          }
+        );
+
+
+        gsap.set(
+          transitionOneCanvas,
+          {
+            autoAlpha: 0
+          }
+        );
+
+
+        gsap.set(
+          sectionTwo,
+          {
+            autoAlpha: 1
+          }
+        );
+
+
+        gsap.set(
+          transitionTwoCanvas,
+          {
+            autoAlpha: 0
+          }
+        );
+
+
+        gsap.set(
+          sectionTwoSequenceCanvas,
+          {
+            autoAlpha: 0
+          }
+        );
+
+
+        gsap.set(
+          sectionThree,
+          {
+            autoAlpha: 0
+          }
+        );
+
 
         renderTallSection(
           rangeProgress(
             p,
+
             t.sectionTwoStart,
+
             t.sectionTwoEnd
           )
         );
 
+
         return;
       }
 
-      if (p < t.transitionTwoEnd) {
-        gsap.set(heroSection, { autoAlpha: 0 });
-        gsap.set(transitionOneCanvas, { autoAlpha: 0 });
+
+      // ========================================================
+      // 4. TRANSITION TWO
+      //
+      // BLUE-NOISE DUST
+      // ========================================================
+
+      if (
+        p <
+        t.transitionTwoEnd
+      ) {
+
+        gsap.set(
+          heroSection,
+          {
+            autoAlpha: 0
+          }
+        );
+
+
+        gsap.set(
+          transitionOneCanvas,
+          {
+            autoAlpha: 0
+          }
+        );
+
 
         /*
-         * Keep the actual tall image frozen at its final position.
+         * Keep the actual tall image
+         * frozen at its final position.
          */
-        gsap.set(sectionTwo, { autoAlpha: 1 });
-        renderTallSection(1);
+
+        gsap.set(
+          sectionTwo,
+          {
+            autoAlpha: 1
+          }
+        );
+
+
+        renderTallSection(
+          1
+        );
+
 
         gsap.set(
           sectionTwoSequenceCanvas,
-          { autoAlpha: 0 }
+          {
+            autoAlpha: 0
+          }
         );
+
 
         gsap.set(
           transitionTwoCanvas,
-          { autoAlpha: 1 }
+          {
+            autoAlpha: 1
+          }
         );
+
 
         transitionTwoRenderer.progress =
           rangeProgress(
             p,
+
             t.transitionTwoStart,
+
             t.transitionTwoEnd
           );
 
+
         transitionTwoRenderer.render();
+
+
         return;
       }
 
-      gsap.set(heroSection, { autoAlpha: 0 });
-      gsap.set(transitionOneCanvas, { autoAlpha: 0 });
-      gsap.set(sectionTwo, { autoAlpha: 0 });
-      gsap.set(transitionTwoCanvas, { autoAlpha: 0 });
-      gsap.set(sectionTwoSequenceCanvas, { autoAlpha: 1 });
 
-      applySectionTwoLayout(p);
+      // ========================================================
+      // 5. SECTION TWO IMAGE SEQUENCE
+      // ========================================================
+
+      gsap.set(
+        heroSection,
+        {
+          autoAlpha: 0
+        }
+      );
+
+
+      gsap.set(
+        transitionOneCanvas,
+        {
+          autoAlpha: 0
+        }
+      );
+
+
+      gsap.set(
+        sectionTwo,
+        {
+          autoAlpha: 0
+        }
+      );
+
+
+      gsap.set(
+        transitionTwoCanvas,
+        {
+          autoAlpha: 0
+        }
+      );
+
+
+      gsap.set(
+        sectionTwoSequenceCanvas,
+        {
+          autoAlpha: 1
+        }
+      );
+
+
+      applySectionTwoLayout(
+        p
+      );
+
 
       drawSequence(
         sectionTwoSource,
+
         sectionTwoRenderer,
+
         CONFIG.sectionTwoSequence,
+
         rangeProgress(
           p,
+
           t.sectionTwoSequenceStart,
+
           t.sectionTwoSequenceEnd
         )
       );
 
+
+      // ========================================================
+      // SECTION THREE FADE
+      // ========================================================
+
       const sectionThreeFade =
         rangeProgress(
           p,
+
           CONFIG.sectionThree.fadeStart,
+
           CONFIG.sectionThree.fadeEnd
         );
 
-      /*
-       * Only the Section 3 right-side panel fades here.
-       * Text visibility is controlled by the Perlin reveal engine.
-       */
-      gsap.set(sectionThree, {
-        opacity: sectionThreeFade,
-        visibility:
-          sectionThreeFade <= 0.001
-            ? "hidden"
-            : "visible"
-      });
 
+      /*
+       * Only the Section 3 right-side panel
+       * fades here.
+       *
+       * Text visibility is controlled
+       * by the Perlin reveal engine.
+       */
+
+      gsap.set(
+        sectionThree,
+        {
+          opacity:
+            sectionThreeFade,
+
+          visibility:
+
+            sectionThreeFade <= 0.001
+
+              ? "hidden"
+
+              : "visible"
+        }
+      );
+
+
+      // ========================================================
+      // FINAL FRAME HOLD
+      // ========================================================
 
       if (
-        p >= t.finalHoldStart &&
+        p >=
+          t.finalHoldStart &&
+
         sequenceLast
       ) {
+
         sectionTwoRenderer.draw(
           sequenceLast
         );
@@ -639,129 +1491,398 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  if (window.dat?.GUI) {
-    const gui = new window.dat.GUI({
-      name: "Experience Controls",
-      width: 340
-    });
 
-    const timelineFolder = gui.addFolder("Timeline");
+  // ============================================================
+  // DAT.GUI
+  // ============================================================
 
-    timelineFolder
-      .add(CONFIG.sectionTwoLayout, "start", 0.72, 0.95, 0.001)
-      .name("layoutStart");
+  if (
+    window.dat?.GUI
+  ) {
 
-    timelineFolder
-      .add(CONFIG.sectionTwoLayout, "end", 0.75, 1, 0.001)
-      .name("layoutEnd");
+    const gui =
+      new window.dat.GUI({
+        name:
+          "Experience Controls",
 
-    const transitionFolder = gui.addFolder("Transition");
-    const s = transitionTwoRenderer.settings;
-
-    transitionFolder
-      .add(s, "softness", 0.001, 0.25, 0.001)
-      .name("Dissolve spread");
-
-    transitionFolder
-      .add(s, "noiseScale", 0.5, 14, 0.1)
-      .name("Edge shape scale");
-
-    transitionFolder
-      .add(s, "noiseAmount", 0, 0.5, 0.005)
-      .name("Edge irregularity");
-
-    transitionFolder
-      .add(s, "dotScale", 0.5, 5, 0.05)
-      .name("Blue-noise dot scale");
-
-    transitionFolder
-      .add(s, "distortion", 0, 0.08, 0.001)
-      .name("Distortion");
-
-    transitionFolder
-      .add(s, "grain", 0, 0.12, 0.001)
-      .name("Film grain");
-
-    transitionFolder
-      .add(s, "edgeWidth", 0.01, 0.35, 0.005)
-      .name("Dust band width");
-
-    transitionFolder
-      .add(s, "edgeOpacity", 0, 1.5, 0.01)
-      .name("Edge opacity");
-
-    const edgeColorProxy = {
-      color: "#e8dec7"
-    };
-
-    transitionFolder
-      .addColor(edgeColorProxy, "color")
-      .name("Edge color")
-      .onChange(value => {
-        const hex = value.replace("#", "");
-        const r = parseInt(hex.slice(0, 2), 16) / 255;
-        const g = parseInt(hex.slice(2, 4), 16) / 255;
-        const b = parseInt(hex.slice(4, 6), 16) / 255;
-
-        s.edgeColor = [r, g, b];
-        transitionTwoRenderer.render();
+        width:
+          340
       });
 
-    const layoutFolder = gui.addFolder("Section 2 Layout");
-    const layout = CONFIG.sectionTwoLayout;
+
+    // ==========================================================
+    // TIMELINE
+    // ==========================================================
+
+    const timelineFolder =
+      gui.addFolder(
+        "Timeline"
+      );
+
+
+    timelineFolder
+      .add(
+        CONFIG.sectionTwoLayout,
+        "start",
+        0.72,
+        0.95,
+        0.001
+      )
+      .name(
+        "layoutStart"
+      );
+
+
+    timelineFolder
+      .add(
+        CONFIG.sectionTwoLayout,
+        "end",
+        0.75,
+        1,
+        0.001
+      )
+      .name(
+        "layoutEnd"
+      );
+
+
+    // ==========================================================
+    // TRANSITION TWO CONTROLS
+    // ==========================================================
+
+    const transitionFolder =
+      gui.addFolder(
+        "Transition"
+      );
+
+
+    const s =
+      transitionTwoRenderer.settings;
+
+
+    transitionFolder
+      .add(
+        s,
+        "softness",
+        0.001,
+        0.25,
+        0.001
+      )
+      .name(
+        "Dissolve spread"
+      );
+
+
+    transitionFolder
+      .add(
+        s,
+        "noiseScale",
+        0.5,
+        14,
+        0.1
+      )
+      .name(
+        "Edge shape scale"
+      );
+
+
+    transitionFolder
+      .add(
+        s,
+        "noiseAmount",
+        0,
+        0.5,
+        0.005
+      )
+      .name(
+        "Edge irregularity"
+      );
+
+
+    transitionFolder
+      .add(
+        s,
+        "dotScale",
+        0.5,
+        5,
+        0.05
+      )
+      .name(
+        "Blue-noise dot scale"
+      );
+
+
+    transitionFolder
+      .add(
+        s,
+        "distortion",
+        0,
+        0.08,
+        0.001
+      )
+      .name(
+        "Distortion"
+      );
+
+
+    transitionFolder
+      .add(
+        s,
+        "grain",
+        0,
+        0.12,
+        0.001
+      )
+      .name(
+        "Film grain"
+      );
+
+
+    transitionFolder
+      .add(
+        s,
+        "edgeWidth",
+        0.01,
+        0.35,
+        0.005
+      )
+      .name(
+        "Dust band width"
+      );
+
+
+    transitionFolder
+      .add(
+        s,
+        "edgeOpacity",
+        0,
+        1.5,
+        0.01
+      )
+      .name(
+        "Edge opacity"
+      );
+
+
+    const edgeColorProxy = {
+      color:
+        "#e8dec7"
+    };
+
+
+    transitionFolder
+      .addColor(
+        edgeColorProxy,
+        "color"
+      )
+      .name(
+        "Edge color"
+      )
+      .onChange(
+        value => {
+
+          const hex =
+            value.replace(
+              "#",
+              ""
+            );
+
+
+          const r =
+            parseInt(
+              hex.slice(
+                0,
+                2
+              ),
+              16
+            ) /
+            255;
+
+
+          const g =
+            parseInt(
+              hex.slice(
+                2,
+                4
+              ),
+              16
+            ) /
+            255;
+
+
+          const b =
+            parseInt(
+              hex.slice(
+                4,
+                6
+              ),
+              16
+            ) /
+            255;
+
+
+          s.edgeColor = [
+            r,
+            g,
+            b
+          ];
+
+
+          transitionTwoRenderer.render();
+        }
+      );
+
+
+    // ==========================================================
+    // SECTION TWO LAYOUT
+    // ==========================================================
+
+    const layoutFolder =
+      gui.addFolder(
+        "Section 2 Layout"
+      );
+
+
+    const layout =
+      CONFIG.sectionTwoLayout;
+
 
     layoutFolder
-      .add(layout, "left", 0, 30, 0.5)
-      .name("left");
+      .add(
+        layout,
+        "left",
+        0,
+        30,
+        0.5
+      )
+      .name(
+        "left"
+      );
+
 
     layoutFolder
-      .add(layout, "top", 0, 30, 0.5)
-      .name("top");
+      .add(
+        layout,
+        "top",
+        0,
+        30,
+        0.5
+      )
+      .name(
+        "top"
+      );
+
 
     layoutFolder
-      .add(layout, "width", 20, 100, 0.5)
-      .name("width");
+      .add(
+        layout,
+        "width",
+        20,
+        100,
+        0.5
+      )
+      .name(
+        "width"
+      );
+
 
     layoutFolder
-      .add(layout, "height", 30, 100, 0.5)
-      .name("height");
+      .add(
+        layout,
+        "height",
+        30,
+        100,
+        0.5
+      )
+      .name(
+        "height"
+      );
+
 
     timelineFolder.open();
+
     transitionFolder.open();
+
     layoutFolder.open();
 
-    window.PerlinRevealRegistry?.addGUI(gui);
-    window.DottedTransitionRegistry?.addGUI(gui);
 
-    window.EXPERIENCE_GUI = gui;
+    window.PerlinRevealRegistry
+      ?.addGUI(
+        gui
+      );
+
+
+    window.DottedTransitionRegistry
+      ?.addGUI(
+        gui
+      );
+
+
+    window.EXPERIENCE_GUI =
+      gui;
   }
+
+
+  // ============================================================
+  // WINDOW RESIZE
+  // ============================================================
 
   let resizeTimer;
 
+
   addEventListener(
     "resize",
+
     () => {
-      clearTimeout(resizeTimer);
 
-      resizeTimer = setTimeout(() => {
-        resizeAll();
+      clearTimeout(
+        resizeTimer
+      );
 
-        finalViewportCrop =
-          captureFinalViewportCrop();
 
-        transitionTwoRenderer.setImages(
-          finalViewportCrop,
-          sequenceFirst
+      resizeTimer =
+        setTimeout(
+          () => {
+
+            resizeAll();
+
+
+            finalViewportCrop =
+              captureFinalViewportCrop();
+
+
+            transitionTwoRenderer.setImages(
+              finalViewportCrop,
+              sequenceFirst
+            );
+
+
+            ScrollTrigger.refresh();
+
+          },
+
+          180
         );
-
-        ScrollTrigger.refresh();
-      }, 180);
     },
-    { passive: true }
+
+    {
+      passive: true
+    }
   );
 
-  requestAnimationFrame(() => {
-    ScrollTrigger.refresh();
-    ScrollTrigger.update();
-  });
+
+  // ============================================================
+  // INITIAL SCROLLTRIGGER SYNC
+  // ============================================================
+
+  requestAnimationFrame(
+    () => {
+
+      ScrollTrigger.refresh();
+
+      ScrollTrigger.update();
+
+    }
+  );
+
 });
