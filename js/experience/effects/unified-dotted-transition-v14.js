@@ -1,39 +1,39 @@
+/* ================================================================
+   FINAL SECTION 3 → SECTION 4 TRANSITION
+   Noise / Dust Vertical Dissolve
+
+   Replaces the old dotted transition.
+
+   IMPORTANT:
+   The public API stays the same:
+
+   window.DottedTransitionRegistry.update(progress)
+   window.DottedTransitionRegistry.resize()
+   window.DottedTransitionRegistry.addGUI(gui)
+
+   So app.js does NOT need to change.
+================================================================ */
+
 (() => {
   "use strict";
 
-  // ============================================================
-  // FINAL SECTION 3 → SECTION 4
-  //
-  // FROM:
-  // .section-2-img-seq
-  //
-  // TRANSITION:
-  // .section-3-noise-ditter-trans
-  //
-  // TO:
-  // .section-4_img
-  //
-  // Public API intentionally stays:
-  //
-  // window.DottedTransitionRegistry.update()
-  // window.DottedTransitionRegistry.resize()
-  // window.DottedTransitionRegistry.captureSource()
-  // window.DottedTransitionRegistry.addGUI()
-  // ============================================================
 
+  // ================================================================
+  // CONFIG
+  // ================================================================
 
   const CONFIG =
     window.EXPERIENCE_CONFIG || {};
 
 
-  const finalConfig =
+  const transitionConfig =
     CONFIG.sectionThreeToFour || {};
 
 
 
-  // ============================================================
-  // DOM
-  // ============================================================
+  // ================================================================
+  // CANVAS
+  // ================================================================
 
   const canvas =
     document.querySelector(
@@ -41,72 +41,11 @@
     );
 
 
-  const sourceCanvas =
-    document.querySelector(
-      ".section-2-img-seq"
-    );
-
-
-  const sectionThree =
-    document.querySelector(
-      ".section_3"
-    );
-
-
-  const sectionFour =
-    document.querySelector(
-      ".section_4"
-    );
-
-
-  const targetImage =
-    document.querySelector(
-      ".section-4_img"
-    );
-
-
-
-  // ============================================================
-  // EMPTY FALLBACK
-  // ============================================================
-
-  function createEmptyRegistry() {
-
-    window.DottedTransitionRegistry = {
-
-      update() {},
-
-      resize() {},
-
-      render() {},
-
-      captureSource() {},
-
-      setImages() {},
-
-      addGUI() {},
-
-      settings: {},
-
-      get ready() {
-        return false;
-      }
-    };
-
-
-    window.DottedTransitionReady =
-      Promise.resolve();
-  }
-
-
-
   if (!canvas) {
-
     console.warn(
       "[FinalNoiseTransition] .section-3-noise-ditter-trans not found."
     );
 
-
     createEmptyRegistry();
 
     return;
@@ -114,76 +53,63 @@
 
 
 
-  if (!sourceCanvas) {
-
-    console.warn(
-      "[FinalNoiseTransition] .section-2-img-seq not found."
-    );
-
-
-    createEmptyRegistry();
-
-    return;
-  }
-
-
-
-  if (!targetImage) {
-
-    console.warn(
-      "[FinalNoiseTransition] .section-4_img not found."
-    );
-
-
-    createEmptyRegistry();
-
-    return;
-  }
-
-
-
-  // ============================================================
+  // ================================================================
   // SETTINGS
-  // ============================================================
+  // ================================================================
 
   const settings = {
 
-    revealStart: 0.00,
-
-    revealEnd: 1.00,
-
-
-    dissolveSpread: 0.048,
+    revealStart:
+      transitionConfig.effectStart ??
+      0.00,
 
 
-    edgeShapeScale: 6.5,
-
-    edgeIrregularity: 0.195,
-
-
-    blueNoiseDotScale: 2.5,
+    revealEnd:
+      transitionConfig.effectEnd ??
+      1.00,
 
 
-    distortion: 0.013,
+    dissolveSpread:
+      0.048,
 
 
-    filmGrain: 0.03,
+    edgeShapeScale:
+      6.5,
 
 
-    dustBandWidth: 0.155,
+    edgeIrregularity:
+      0.195,
 
 
-    edgeOpacity: 0.75,
+    blueNoiseDotScale:
+      2.5,
 
 
-    edgeColor: "#e8dec7"
+    distortion:
+      0.013,
+
+
+    filmGrain:
+      0.03,
+
+
+    dustBandWidth:
+      0.155,
+
+
+    edgeOpacity:
+      0.75,
+
+
+    edgeColor:
+      "#e8dec7"
   };
 
 
 
-  // ============================================================
+  // ================================================================
   // WEBGL
-  // ============================================================
+  // ================================================================
 
   const gl =
     canvas.getContext(
@@ -225,13 +151,10 @@
     );
 
 
-
   if (!gl) {
-
     console.warn(
       "[FinalNoiseTransition] WebGL unavailable."
     );
-
 
     createEmptyRegistry();
 
@@ -240,19 +163,19 @@
 
 
 
-  // ============================================================
+  // ================================================================
   // STATE
-  // ============================================================
+  // ================================================================
 
   let progress =
     0;
 
 
-  let fromSource =
+  let fromImage =
     null;
 
 
-  let toSource =
+  let toImage =
     null;
 
 
@@ -264,77 +187,17 @@
     null;
 
 
-  let targetReady =
-    false;
-
-
-  let sourceReady =
-    false;
-
-
   let ready =
     false;
 
 
 
-  // ============================================================
-  // SHADER COMPILER
-  // ============================================================
-
-  function compileShader(
-    type,
-    source
-  ) {
-
-    const shader =
-      gl.createShader(type);
-
-
-    gl.shaderSource(
-      shader,
-      source
-    );
-
-
-    gl.compileShader(
-      shader
-    );
-
-
-    if (
-      !gl.getShaderParameter(
-        shader,
-        gl.COMPILE_STATUS
-      )
-    ) {
-
-      const error =
-        gl.getShaderInfoLog(
-          shader
-        );
-
-
-      gl.deleteShader(
-        shader
-      );
-
-
-      throw new Error(
-        `[FinalNoiseTransition] Shader error:\n${error}`
-      );
-    }
-
-
-    return shader;
-  }
-
-
-
-  // ============================================================
-  // VERTEX
-  // ============================================================
+  // ================================================================
+  // VERTEX SHADER
+  // ================================================================
 
   const vertexSource = `
+
     attribute vec2 a_position;
 
     varying vec2 v_uv;
@@ -355,15 +218,17 @@
           1.0
         );
     }
+
   `;
 
 
 
-  // ============================================================
-  // FRAGMENT
-  // ============================================================
+  // ================================================================
+  // FRAGMENT SHADER
+  // ================================================================
 
   const fragmentSource = `
+
     precision highp float;
 
 
@@ -417,9 +282,9 @@
 
 
 
-    // ==========================================================
+    // ============================================================
     // HASH
-    // ==========================================================
+    // ============================================================
 
     float hash21(vec2 p) {
 
@@ -449,9 +314,9 @@
 
 
 
-    // ==========================================================
+    // ============================================================
     // VALUE NOISE
-    // ==========================================================
+    // ============================================================
 
     float valueNoise(vec2 p) {
 
@@ -506,29 +371,30 @@
         );
 
 
-      return mix(
-
+      return
         mix(
-          a,
-          b,
-          f.x
-        ),
 
-        mix(
-          c,
-          d,
-          f.x
-        ),
+          mix(
+            a,
+            b,
+            f.x
+          ),
 
-        f.y
-      );
+          mix(
+            c,
+            d,
+            f.x
+          ),
+
+          f.y
+        );
     }
 
 
 
-    // ==========================================================
+    // ============================================================
     // COVER UV
-    // ==========================================================
+    // ============================================================
 
     vec2 coverUV(
       vec2 uv,
@@ -571,21 +437,17 @@
           uv -
           0.5
         )
-
         *
-
         scale
-
         +
-
         0.5;
     }
 
 
 
-    // ==========================================================
+    // ============================================================
     // MAIN
-    // ==========================================================
+    // ============================================================
 
     void main() {
 
@@ -594,9 +456,9 @@
 
 
 
-      // --------------------------------------------------------
-      // LOCAL PROGRESS
-      // --------------------------------------------------------
+      // ----------------------------------------------------------
+      // LOCAL TRANSITION PROGRESS
+      // ----------------------------------------------------------
 
       float localProgress =
         clamp(
@@ -622,9 +484,9 @@
 
 
 
-      // --------------------------------------------------------
+      // ----------------------------------------------------------
       // BLUE NOISE GRID
-      // --------------------------------------------------------
+      // ----------------------------------------------------------
 
       vec2 grid =
         floor(
@@ -656,9 +518,9 @@
 
 
 
-      // --------------------------------------------------------
-      // LARGE EDGE SHAPE
-      // --------------------------------------------------------
+      // ----------------------------------------------------------
+      // LARGE ORGANIC EDGE
+      // ----------------------------------------------------------
 
       float edgeShape =
         valueNoise(
@@ -676,9 +538,9 @@
 
 
 
-      // --------------------------------------------------------
-      // FINE EDGE SHAPE
-      // --------------------------------------------------------
+      // ----------------------------------------------------------
+      // SMALLER EDGE DETAILS
+      // ----------------------------------------------------------
 
       float fineShape =
         valueNoise(
@@ -719,9 +581,9 @@
 
 
 
-      // --------------------------------------------------------
-      // DISTORTION
-      // --------------------------------------------------------
+      // ----------------------------------------------------------
+      // SUBTLE DISTORTION
+      // ----------------------------------------------------------
 
       float distortionNoise =
 
@@ -748,9 +610,9 @@
 
 
 
-      // --------------------------------------------------------
-      // VERTICAL REVEAL FRONT
-      // --------------------------------------------------------
+      // ----------------------------------------------------------
+      // VERTICAL THRESHOLD
+      // ----------------------------------------------------------
 
       float threshold =
 
@@ -773,6 +635,10 @@
 
 
 
+      // ----------------------------------------------------------
+      // ORGANIC VERTICAL AXIS
+      // ----------------------------------------------------------
+
       float displacedAxis =
 
         uv.y
@@ -787,9 +653,9 @@
 
 
 
-      // --------------------------------------------------------
+      // ----------------------------------------------------------
       // DISSOLVE
-      // --------------------------------------------------------
+      // ----------------------------------------------------------
 
       float dissolve =
         smoothstep(
@@ -805,9 +671,9 @@
 
 
 
-      // --------------------------------------------------------
-      // FROM
-      // --------------------------------------------------------
+      // ----------------------------------------------------------
+      // TEXTURES
+      // ----------------------------------------------------------
 
       vec4 fromColor =
         texture2D(
@@ -822,10 +688,6 @@
 
 
 
-      // --------------------------------------------------------
-      // TO
-      // --------------------------------------------------------
-
       vec4 toColor =
         texture2D(
 
@@ -839,9 +701,9 @@
 
 
 
-      // --------------------------------------------------------
-      // MAIN COLOR
-      // --------------------------------------------------------
+      // ----------------------------------------------------------
+      // MAIN MIX
+      // ----------------------------------------------------------
 
       vec3 color =
         mix(
@@ -855,9 +717,9 @@
 
 
 
-      // --------------------------------------------------------
+      // ----------------------------------------------------------
       // EDGE DISTANCE
-      // --------------------------------------------------------
+      // ----------------------------------------------------------
 
       float boundary =
         abs(
@@ -871,9 +733,9 @@
 
 
 
-      // --------------------------------------------------------
+      // ----------------------------------------------------------
       // DUST BAND
-      // --------------------------------------------------------
+      // ----------------------------------------------------------
 
       float dustBand =
 
@@ -891,6 +753,10 @@
         );
 
 
+
+      // ----------------------------------------------------------
+      // DOT THRESHOLD
+      // ----------------------------------------------------------
 
       float dotThreshold =
 
@@ -922,9 +788,9 @@
 
 
 
-      // --------------------------------------------------------
+      // ----------------------------------------------------------
       // DUST COLOR
-      // --------------------------------------------------------
+      // ----------------------------------------------------------
 
       vec3 sampledDust =
         mix(
@@ -950,9 +816,11 @@
 
 
 
-      // --------------------------------------------------------
+      // ----------------------------------------------------------
       // CLEAN START
-      // --------------------------------------------------------
+      //
+      // No dust visible at progress 0.
+      // ----------------------------------------------------------
 
       float startVisibility =
         smoothstep(
@@ -966,9 +834,9 @@
 
 
 
-      // --------------------------------------------------------
-      // CLEAN END
-      // --------------------------------------------------------
+      // ----------------------------------------------------------
+      // CLEAN FINISH
+      // ----------------------------------------------------------
 
       float topCleanup =
 
@@ -997,6 +865,10 @@
 
 
 
+      // ----------------------------------------------------------
+      // ADD DUST
+      // ----------------------------------------------------------
+
       color =
         mix(
 
@@ -1010,9 +882,9 @@
 
 
 
-      // --------------------------------------------------------
-      // FORCE CLEAN ORIGINAL
-      // --------------------------------------------------------
+      // ----------------------------------------------------------
+      // FORCE CLEAN FIRST FRAME
+      // ----------------------------------------------------------
 
       color =
         mix(
@@ -1026,9 +898,9 @@
 
 
 
-      // --------------------------------------------------------
-      // FORCE CLEAN TARGET
-      // --------------------------------------------------------
+      // ----------------------------------------------------------
+      // FORCE CLEAN FINAL FRAME
+      // ----------------------------------------------------------
 
       float finish =
         smoothstep(
@@ -1054,9 +926,9 @@
 
 
 
-      // --------------------------------------------------------
+      // ----------------------------------------------------------
       // FILM GRAIN
-      // --------------------------------------------------------
+      // ----------------------------------------------------------
 
       float grain =
 
@@ -1101,20 +973,75 @@
           1.0
         );
     }
+
   `;
 
 
 
-  // ============================================================
+  // ================================================================
+  // SHADER COMPILATION
+  // ================================================================
+
+  function compileShader(
+    type,
+    source
+  ) {
+
+    const shader =
+      gl.createShader(
+        type
+      );
+
+
+    gl.shaderSource(
+      shader,
+      source
+    );
+
+
+    gl.compileShader(
+      shader
+    );
+
+
+    if (
+      !gl.getShaderParameter(
+        shader,
+        gl.COMPILE_STATUS
+      )
+    ) {
+
+      const error =
+        gl.getShaderInfoLog(
+          shader
+        );
+
+
+      gl.deleteShader(
+        shader
+      );
+
+
+      throw new Error(
+        `[FinalNoiseTransition] Shader error:\n${error}`
+      );
+    }
+
+
+    return shader;
+  }
+
+
+
+  // ================================================================
   // PROGRAM
-  // ============================================================
+  // ================================================================
 
   const program =
     gl.createProgram();
 
 
   gl.attachShader(
-
     program,
 
     compileShader(
@@ -1125,7 +1052,6 @@
 
 
   gl.attachShader(
-
     program,
 
     compileShader(
@@ -1155,16 +1081,15 @@
   }
 
 
-
   gl.useProgram(
     program
   );
 
 
 
-  // ============================================================
-  // BUFFER
-  // ============================================================
+  // ================================================================
+  // FULL SCREEN TRIANGLE BUFFER
+  // ================================================================
 
   const buffer =
     gl.createBuffer();
@@ -1177,7 +1102,6 @@
 
 
   gl.bufferData(
-
     gl.ARRAY_BUFFER,
 
     new Float32Array([
@@ -1215,7 +1139,6 @@
 
 
   gl.vertexAttribPointer(
-
     position,
 
     2,
@@ -1231,9 +1154,9 @@
 
 
 
-  // ============================================================
+  // ================================================================
   // UNIFORMS
-  // ============================================================
+  // ================================================================
 
   const uniformNames = [
 
@@ -1291,13 +1214,11 @@
 
 
 
-  // ============================================================
+  // ================================================================
   // HELPERS
-  // ============================================================
+  // ================================================================
 
-  function clamp01(
-    value
-  ) {
+  function clamp01(value) {
 
     return Math.max(
       0,
@@ -1337,9 +1258,7 @@
 
 
 
-  function hexToRGB(
-    hex
-  ) {
+  function hexToRGB(hex) {
 
     const clean =
       String(
@@ -1359,16 +1278,17 @@
         ? clean
             .split("")
             .map(
-              char =>
-                char +
-                char
+              character =>
+                character +
+                character
             )
             .join("")
 
         : clean;
 
 
-    const value =
+
+    const number =
       parseInt(
         normalized,
         16
@@ -1377,7 +1297,7 @@
 
     if (
       !Number.isFinite(
-        value
+        number
       )
     ) {
 
@@ -1393,7 +1313,7 @@
 
       (
         (
-          value >>
+          number >>
           16
         )
         &
@@ -1405,7 +1325,7 @@
 
       (
         (
-          value >>
+          number >>
           8
         )
         &
@@ -1416,7 +1336,7 @@
 
 
       (
-        value &
+        number &
         255
       )
       /
@@ -1426,12 +1346,56 @@
 
 
 
-  // ============================================================
-  // CREATE TEXTURE
-  // ============================================================
+  // ================================================================
+  // IMAGE LOADING
+  // ================================================================
+
+  function loadImage(src) {
+
+    return new Promise(
+      (
+        resolve,
+        reject
+      ) => {
+
+        const image =
+          new Image();
+
+
+        image.crossOrigin =
+          "anonymous";
+
+
+        image.onload =
+          () =>
+            resolve(
+              image
+            );
+
+
+        image.onerror =
+          () =>
+            reject(
+              new Error(
+                `[FinalNoiseTransition] Failed loading ${src}`
+              )
+            );
+
+
+        image.src =
+          src;
+      }
+    );
+  }
+
+
+
+  // ================================================================
+  // TEXTURE
+  // ================================================================
 
   function createTexture(
-    source,
+    image,
     unit
   ) {
 
@@ -1452,28 +1416,36 @@
 
     gl.texParameteri(
       gl.TEXTURE_2D,
+
       gl.TEXTURE_WRAP_S,
+
       gl.CLAMP_TO_EDGE
     );
 
 
     gl.texParameteri(
       gl.TEXTURE_2D,
+
       gl.TEXTURE_WRAP_T,
+
       gl.CLAMP_TO_EDGE
     );
 
 
     gl.texParameteri(
       gl.TEXTURE_2D,
+
       gl.TEXTURE_MIN_FILTER,
+
       gl.LINEAR
     );
 
 
     gl.texParameteri(
       gl.TEXTURE_2D,
+
       gl.TEXTURE_MAG_FILTER,
+
       gl.LINEAR
     );
 
@@ -1496,7 +1468,7 @@
 
       gl.UNSIGNED_BYTE,
 
-      source
+      image
     );
 
 
@@ -1505,248 +1477,143 @@
 
 
 
-  // ============================================================
-  // TARGET IMAGE
-  // ============================================================
+  // ================================================================
+  // FIND SOURCE IMAGES
+  // ================================================================
 
-  function waitForImage(
-    image
+  function getImageFromElement(
+    element
   ) {
 
-    if (
-      image.complete &&
-      image.naturalWidth >
-      0
-    ) {
-
-      return Promise.resolve(
-        image
-      );
+    if (!element) {
+      return null;
     }
 
 
-    return new Promise(
-      (
-        resolve,
-        reject
-      ) => {
+    if (
+      element.tagName ===
+      "IMG"
+    ) {
 
-        image.addEventListener(
-          "load",
-          () => {
-            resolve(
-              image
-            );
-          },
-          {
-            once: true
-          }
-        );
+      return element;
+    }
 
 
-        image.addEventListener(
-          "error",
-          () => {
+    return (
+      element.querySelector(
+        "img"
+      )
 
-            reject(
-              new Error(
-                "[FinalNoiseTransition] Section 4 image failed to load."
-              )
-            );
-          },
-          {
-            once: true
-          }
-        );
-      }
+      ||
+
+      element.querySelector(
+        "[data-canvas-texture]"
+      )
     );
   }
 
 
 
-  // ============================================================
-  // CAPTURE FINAL SEQUENCE FRAME
-  // ============================================================
+  function findPreviousImage() {
 
-  function captureSource() {
+    /*
+     * First preference:
+     * explicitly configured transition source.
+     */
 
-    if (
-      !sourceCanvas.width ||
-      !sourceCanvas.height
-    ) {
-
-      console.warn(
-        "[FinalNoiseTransition] Sequence canvas has no size."
+    const explicit =
+      document.querySelector(
+        "[data-final-transition-from]"
       );
 
-      return false;
-    }
 
-
-
-    if (
-      fromTexture
-    ) {
-
-      gl.deleteTexture(
-        fromTexture
+    if (explicit) {
+      return getImageFromElement(
+        explicit
       );
     }
 
 
 
-    fromSource =
-      sourceCanvas;
+    /*
+     * Section 3 image/content.
+     */
 
-
-
-    fromTexture =
-      createTexture(
-
-        sourceCanvas,
-
-        gl.TEXTURE0
+    const sectionThree =
+      document.querySelector(
+        ".section_3"
       );
 
 
+    const image =
+      sectionThree?.querySelector(
+        "[data-canvas-texture]"
+      )
 
-    sourceReady =
-      true;
+      ||
 
-
-
-    ready =
-      sourceReady &&
-      targetReady;
-
-
-
-    if (ready) {
-
-      render();
-    }
+      sectionThree?.querySelector(
+        "img"
+      );
 
 
-
-    return true;
+    return image || null;
   }
 
 
 
-  // ============================================================
-  // SET TARGET
-  // ============================================================
+  function findNextImage() {
 
-  function setTarget(
-    image
-  ) {
+    /*
+     * First preference:
+     * explicitly configured destination.
+     */
 
-    toSource =
-      image;
+    const explicit =
+      document.querySelector(
+        "[data-final-transition-to]"
+      );
 
 
+    if (explicit) {
 
-    if (
-      toTexture
-    ) {
-
-      gl.deleteTexture(
-        toTexture
+      return getImageFromElement(
+        explicit
       );
     }
 
 
 
-    toTexture =
-      createTexture(
+    /*
+     * Section 4 image.
+     */
 
-        image,
-
-        gl.TEXTURE1
+    const sectionFour =
+      document.querySelector(
+        ".section_4"
       );
 
 
+    const image =
+      sectionFour?.querySelector(
+        "[data-canvas-texture]"
+      )
 
-    targetReady =
-      true;
+      ||
+
+      sectionFour?.querySelector(
+        "img"
+      );
 
 
-
-    ready =
-      sourceReady &&
-      targetReady;
+    return image || null;
   }
 
 
 
-  // ============================================================
-  // SET BOTH SOURCES
-  // OPTIONAL PUBLIC METHOD
-  // ============================================================
-
-  function setImages(
-    from,
-    to
-  ) {
-
-    if (
-      from
-    ) {
-
-      if (
-        fromTexture
-      ) {
-
-        gl.deleteTexture(
-          fromTexture
-        );
-      }
-
-
-      fromSource =
-        from;
-
-
-      fromTexture =
-        createTexture(
-          from,
-          gl.TEXTURE0
-        );
-
-
-      sourceReady =
-        true;
-    }
-
-
-
-    if (
-      to
-    ) {
-
-      setTarget(
-        to
-      );
-    }
-
-
-
-    ready =
-      sourceReady &&
-      targetReady;
-
-
-
-    resize();
-
-    render();
-  }
-
-
-
-  // ============================================================
+  // ================================================================
   // RESIZE
-  // ============================================================
+  // ================================================================
 
   function resize() {
 
@@ -1758,17 +1625,14 @@
       !rect.width ||
       !rect.height
     ) {
-
       return;
     }
-
 
 
     const mobile =
       matchMedia(
         "(max-width: 767px)"
       ).matches;
-
 
 
     const dpr =
@@ -1778,9 +1642,7 @@
         ? 1
 
         : Math.min(
-
-            window.devicePixelRatio ||
-            1,
+            window.devicePixelRatio || 1,
 
             1.5
           );
@@ -1797,7 +1659,6 @@
           dpr
         )
       );
-
 
 
     const height =
@@ -1839,15 +1700,14 @@
     );
 
 
-
     render();
   }
 
 
 
-  // ============================================================
+  // ================================================================
   // RENDER
-  // ============================================================
+  // ================================================================
 
   function render() {
 
@@ -1856,19 +1716,19 @@
 
       ||
 
+      !fromImage
+
+      ||
+
+      !toImage
+
+      ||
+
       !fromTexture
 
       ||
 
       !toTexture
-
-      ||
-
-      !fromSource
-
-      ||
-
-      !toSource
     ) {
 
       return;
@@ -1889,37 +1749,10 @@
     );
 
 
-    gl.bindBuffer(
-      gl.ARRAY_BUFFER,
-      buffer
-    );
 
-
-    gl.enableVertexAttribArray(
-      position
-    );
-
-
-    gl.vertexAttribPointer(
-
-      position,
-
-      2,
-
-      gl.FLOAT,
-
-      false,
-
-      0,
-
-      0
-    );
-
-
-
-    // ----------------------------------------------------------
-    // FROM
-    // ----------------------------------------------------------
+    // ------------------------------------------------------------
+    // FROM TEXTURE
+    // ------------------------------------------------------------
 
     gl.activeTexture(
       gl.TEXTURE0
@@ -1939,9 +1772,9 @@
 
 
 
-    // ----------------------------------------------------------
-    // TO
-    // ----------------------------------------------------------
+    // ------------------------------------------------------------
+    // TO TEXTURE
+    // ------------------------------------------------------------
 
     gl.activeTexture(
       gl.TEXTURE1
@@ -1961,6 +1794,10 @@
 
 
 
+    // ------------------------------------------------------------
+    // SIZES
+    // ------------------------------------------------------------
+
     gl.uniform2f(
 
       uniforms.u_resolution,
@@ -1976,11 +1813,11 @@
 
       uniforms.u_fromSize,
 
-      fromSource.naturalWidth ||
-      fromSource.width,
+      fromImage.naturalWidth ||
+      fromImage.width,
 
-      fromSource.naturalHeight ||
-      fromSource.height
+      fromImage.naturalHeight ||
+      fromImage.height
     );
 
 
@@ -1989,14 +1826,18 @@
 
       uniforms.u_toSize,
 
-      toSource.naturalWidth ||
-      toSource.width,
+      toImage.naturalWidth ||
+      toImage.width,
 
-      toSource.naturalHeight ||
-      toSource.height
+      toImage.naturalHeight ||
+      toImage.height
     );
 
 
+
+    // ------------------------------------------------------------
+    // PROGRESS
+    // ------------------------------------------------------------
 
     gl.uniform1f(
 
@@ -2007,62 +1848,86 @@
 
 
 
+    // ------------------------------------------------------------
+    // SETTINGS
+    // ------------------------------------------------------------
+
     gl.uniform1f(
+
       uniforms.u_revealStart,
+
       settings.revealStart
     );
 
 
     gl.uniform1f(
+
       uniforms.u_revealEnd,
+
       settings.revealEnd
     );
 
 
     gl.uniform1f(
+
       uniforms.u_dissolveSpread,
+
       settings.dissolveSpread
     );
 
 
     gl.uniform1f(
+
       uniforms.u_edgeShapeScale,
+
       settings.edgeShapeScale
     );
 
 
     gl.uniform1f(
+
       uniforms.u_edgeIrregularity,
+
       settings.edgeIrregularity
     );
 
 
     gl.uniform1f(
+
       uniforms.u_blueNoiseDotScale,
+
       settings.blueNoiseDotScale
     );
 
 
     gl.uniform1f(
+
       uniforms.u_distortion,
+
       settings.distortion
     );
 
 
     gl.uniform1f(
+
       uniforms.u_filmGrain,
+
       settings.filmGrain
     );
 
 
     gl.uniform1f(
+
       uniforms.u_dustBandWidth,
+
       settings.dustBandWidth
     );
 
 
     gl.uniform1f(
+
       uniforms.u_edgeOpacity,
+
       settings.edgeOpacity
     );
 
@@ -2072,7 +1937,6 @@
       hexToRGB(
         settings.edgeColor
       );
-
 
 
     gl.uniform3f(
@@ -2097,16 +1961,49 @@
 
 
 
-  // ============================================================
-  // VISIBILITY
-  // ============================================================
+  // ================================================================
+  // GLOBAL PROGRESS
+  // ================================================================
 
-  function updateVisibility(
-    localProgress
+  function update(
+    globalProgress
   ) {
 
+    /*
+     * app.js sends raw ScrollTrigger progress.
+     *
+     * Convert that into local Section 3 → 4 transition progress.
+     */
+
+    const start =
+      transitionConfig.revealStart ??
+      0.92;
+
+
+    const end =
+      transitionConfig.revealEnd ??
+      1.0;
+
+
+
+    progress =
+      rangeProgress(
+
+        globalProgress,
+
+        start,
+
+        end
+      );
+
+
+
+    // ------------------------------------------------------------
+    // VISIBILITY
+    // ------------------------------------------------------------
+
     if (
-      localProgress <=
+      progress <=
       0.0001
     ) {
 
@@ -2116,63 +2013,6 @@
 
       canvas.style.visibility =
         "hidden";
-
-
-      if (
-        sectionFour
-      ) {
-
-        sectionFour.style.opacity =
-          "0";
-
-
-        sectionFour.style.visibility =
-          "hidden";
-      }
-
-
-      return;
-    }
-
-
-
-    if (
-      localProgress >=
-      0.999
-    ) {
-
-      canvas.style.opacity =
-        "0";
-
-
-      canvas.style.visibility =
-        "hidden";
-
-
-      if (
-        sectionThree
-      ) {
-
-        sectionThree.style.opacity =
-          "0";
-
-
-        sectionThree.style.visibility =
-          "hidden";
-      }
-
-
-      if (
-        sectionFour
-      ) {
-
-        sectionFour.style.opacity =
-          "1";
-
-
-        sectionFour.style.visibility =
-          "visible";
-      }
 
 
       return;
@@ -2189,118 +2029,213 @@
 
 
 
-    if (
-      sectionFour
-    ) {
-
-      sectionFour.style.opacity =
-        "0";
-
-
-      sectionFour.style.visibility =
-        "hidden";
-    }
-
-
-
-    /*
-     * Fade Section 3 content away
-     * while the shader progresses.
-     */
-
-    if (
-      sectionThree
-    ) {
-
-      const sectionThreeAlpha =
-        Math.max(
-          0,
-
-          1 -
-          localProgress *
-          2.3
-        );
-
-
-      sectionThree.style.opacity =
-        String(
-          sectionThreeAlpha
-        );
-
-
-      sectionThree.style.visibility =
-        sectionThreeAlpha >
-        0.001
-
-          ? "visible"
-
-          : "hidden";
-    }
+    render();
   }
 
 
 
-  // ============================================================
-  // UPDATE
-  // app.js supplies RAW ScrollTrigger progress
-  // ============================================================
+  // ================================================================
+  // SET IMAGES
+  // ================================================================
 
-  function update(
-    rawProgress
+  function setImages(
+    from,
+    to
   ) {
 
-    const start =
-      finalConfig.revealStart ??
-      0.92;
+    if (
+      !from ||
+      !to
+    ) {
+
+      console.warn(
+        "[FinalNoiseTransition] Missing from/to image."
+      );
+
+      return;
+    }
 
 
-    const end =
-      finalConfig.revealEnd ??
-      1.0;
+
+    fromImage =
+      from;
+
+
+    toImage =
+      to;
 
 
 
-    progress =
-      rangeProgress(
+    if (
+      fromTexture
+    ) {
 
-        rawProgress,
+      gl.deleteTexture(
+        fromTexture
+      );
+    }
 
-        start,
 
-        end
+
+    if (
+      toTexture
+    ) {
+
+      gl.deleteTexture(
+        toTexture
+      );
+    }
+
+
+
+    fromTexture =
+      createTexture(
+        fromImage,
+        gl.TEXTURE0
       );
 
 
 
-    updateVisibility(
-      progress
-    );
+    toTexture =
+      createTexture(
+        toImage,
+        gl.TEXTURE1
+      );
 
 
 
-    if (
-      progress >
-      0.0001
+    ready =
+      true;
 
-      &&
 
-      progress <
-      0.999
-    ) {
 
-      render();
+    resize();
+
+    render();
+  }
+
+
+
+  // ================================================================
+  // INITIAL IMAGE DISCOVERY
+  // ================================================================
+
+  async function initialize() {
+
+    try {
+
+      const fromElement =
+        findPreviousImage();
+
+
+      const toElement =
+        findNextImage();
+
+
+
+      if (
+        !fromElement
+
+        ||
+
+        !toElement
+      ) {
+
+        console.warn(
+          "[FinalNoiseTransition] Could not automatically find Section 3 / Section 4 images."
+        );
+
+
+        console.warn(
+          "[FinalNoiseTransition] Add data-final-transition-from and data-final-transition-to if needed."
+        );
+
+
+        return;
+      }
+
+
+
+      const fromSrc =
+
+        fromElement.currentSrc
+
+        ||
+
+        fromElement.src;
+
+
+
+      const toSrc =
+
+        toElement.currentSrc
+
+        ||
+
+        toElement.src;
+
+
+
+      if (
+        !fromSrc ||
+        !toSrc
+      ) {
+
+        console.warn(
+          "[FinalNoiseTransition] Source URLs are missing."
+        );
+
+        return;
+      }
+
+
+
+      const [
+        loadedFrom,
+        loadedTo
+      ] =
+
+        await Promise.all([
+
+          loadImage(
+            fromSrc
+          ),
+
+          loadImage(
+            toSrc
+          )
+        ]);
+
+
+
+      setImages(
+        loadedFrom,
+        loadedTo
+      );
+
+
+
+      console.log(
+        "[FinalNoiseTransition] Ready."
+      );
+
+
+    } catch (error) {
+
+      console.error(
+        "[FinalNoiseTransition] Initialization failed:",
+        error
+      );
     }
   }
 
 
 
-  // ============================================================
-  // GUI
-  // ============================================================
+  // ================================================================
+  // DAT.GUI
+  // ================================================================
 
-  function addGUI(
-    gui
-  ) {
+  function addGUI(gui) {
 
     if (!gui) {
       return;
@@ -2317,10 +2252,15 @@
 
     folder
       .add(
+
         settings,
+
         "revealStart",
+
         0,
+
         0.95,
+
         0.005
       )
       .name(
@@ -2331,10 +2271,15 @@
 
     folder
       .add(
+
         settings,
+
         "revealEnd",
+
         0.05,
+
         1,
+
         0.005
       )
       .name(
@@ -2345,10 +2290,15 @@
 
     folder
       .add(
+
         settings,
+
         "dissolveSpread",
+
         0.001,
+
         0.15,
+
         0.001
       )
       .name(
@@ -2359,10 +2309,15 @@
 
     folder
       .add(
+
         settings,
+
         "edgeShapeScale",
+
         1,
+
         14,
+
         0.1
       )
       .name(
@@ -2373,10 +2328,15 @@
 
     folder
       .add(
+
         settings,
+
         "edgeIrregularity",
+
         0,
+
         0.35,
+
         0.005
       )
       .name(
@@ -2387,10 +2347,15 @@
 
     folder
       .add(
+
         settings,
+
         "blueNoiseDotScale",
+
         1,
+
         6,
+
         0.1
       )
       .name(
@@ -2401,10 +2366,15 @@
 
     folder
       .add(
+
         settings,
+
         "distortion",
+
         0,
+
         0.08,
+
         0.001
       )
       .name(
@@ -2415,10 +2385,15 @@
 
     folder
       .add(
+
         settings,
+
         "filmGrain",
+
         0,
+
         0.12,
+
         0.005
       )
       .name(
@@ -2429,10 +2404,15 @@
 
     folder
       .add(
+
         settings,
+
         "dustBandWidth",
+
         0.01,
+
         0.4,
+
         0.005
       )
       .name(
@@ -2443,10 +2423,15 @@
 
     folder
       .add(
+
         settings,
+
         "edgeOpacity",
+
         0,
+
         1,
+
         0.01
       )
       .name(
@@ -2457,7 +2442,9 @@
 
     folder
       .addColor(
+
         settings,
+
         "edgeColor"
       )
       .name(
@@ -2471,48 +2458,9 @@
 
 
 
-  // ============================================================
-  // INITIALIZE TARGET
-  // ============================================================
-
-  async function initialize() {
-
-    try {
-
-      const image =
-        await waitForImage(
-          targetImage
-        );
-
-
-      setTarget(
-        image
-      );
-
-
-      resize();
-
-
-
-      console.log(
-        "[FinalNoiseTransition] Target ready: .section-4_img"
-      );
-
-
-    } catch (error) {
-
-      console.error(
-        "[FinalNoiseTransition] Initialization failed:",
-        error
-      );
-    }
-  }
-
-
-
-  // ============================================================
+  // ================================================================
   // PUBLIC REGISTRY
-  // ============================================================
+  // ================================================================
 
   window.DottedTransitionRegistry = {
 
@@ -2522,8 +2470,6 @@
 
     render,
 
-    captureSource,
-
     setImages,
 
     addGUI,
@@ -2531,40 +2477,32 @@
     settings,
 
 
-    get ready() {
-      return ready;
-    },
-
-
-    get sourceReady() {
-      return sourceReady;
-    },
-
-
-    get targetReady() {
-      return targetReady;
-    },
-
-
     get progress() {
+
       return progress;
+    },
+
+
+    get ready() {
+
+      return ready;
     }
   };
 
 
 
-  // ============================================================
-  // READY
-  // ============================================================
+  // ================================================================
+  // READY PROMISE
+  // ================================================================
 
   window.DottedTransitionReady =
     initialize();
 
 
 
-  // ============================================================
+  // ================================================================
   // RESIZE
-  // ============================================================
+  // ================================================================
 
   let resizeTimer;
 
@@ -2582,11 +2520,7 @@
 
       resizeTimer =
         setTimeout(
-          () => {
-
-            resize();
-
-          },
+          resize,
           120
         );
     },
@@ -2595,5 +2529,35 @@
       passive: true
     }
   );
+
+
+
+  // ================================================================
+  // EMPTY REGISTRY FALLBACK
+  // ================================================================
+
+  function createEmptyRegistry() {
+
+    window.DottedTransitionRegistry = {
+
+      update() {},
+
+      resize() {},
+
+      render() {},
+
+      setImages() {},
+
+      addGUI() {},
+
+      settings: {},
+
+      ready: false
+    };
+
+
+    window.DottedTransitionReady =
+      Promise.resolve();
+  }
 
 })();
