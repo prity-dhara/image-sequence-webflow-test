@@ -1,119 +1,43 @@
-// ============================================================================
-// TRANSITION 01
-// CENTER IRREGULAR / COLORED DUST REVEAL
-//
-// IMPORTANT:
-// The old class name OrganicRectangleReveal is intentionally kept because
-// app.js already imports and instantiates that name.
-// ============================================================================
-
 window.TransitionEngine = (() => {
-  "use strict";
-
-  const CONFIG = window.EXPERIENCE_CONFIG || {};
+  const CONFIG = window.EXPERIENCE_CONFIG;
 
   class OrganicRectangleReveal {
-    constructor(canvas, settings = {}) {
+    constructor(canvas, settings = null) {
+      this.settings = settings || CONFIG.transition || CONFIG.transitionOne;
       this.canvas = canvas;
       this.progress = 0;
       this.ready = false;
 
-      this.settings = Object.assign(
-        {
-          revealStart: 0.0,
-          revealEnd: 1.0,
+      this.gl = canvas.getContext("webgl2", {
+        alpha: true,
+        antialias: false,
+        depth: false,
+        stencil: false,
+        premultipliedAlpha: false,
+        powerPreference: "high-performance"
+      }) || canvas.getContext("webgl");
 
-          centerX: 0.5,
-          centerY: 0.5,
-
-          shapeScale: 4.8,
-          shapeIrregularity: 0.24,
-          vShapeAmount: 0.16,
-
-          distortion: 0.035,
-          dissolveSpread: 0.045,
-
-          dustBandWidth: 0.12,
-          dotScale: 2.2,
-
-          edgeOpacity: 0.82,
-          colorMix: 0.85,
-          grain: 0.025
-        },
-        settings || {}
-      );
-
-      this.gl =
-        canvas.getContext("webgl2", {
-          alpha: true,
-          antialias: false,
-          depth: false,
-          stencil: false,
-          premultipliedAlpha: false,
-          powerPreference: "high-performance"
-        }) ||
-        canvas.getContext("webgl", {
-          alpha: true,
-          antialias: false,
-          depth: false,
-          stencil: false,
-          premultipliedAlpha: false,
-          powerPreference: "high-performance"
-        });
-
-      if (!this.gl) {
-        throw new Error(
-          "[CenterReveal] WebGL is unavailable."
-        );
-      }
+      if (!this.gl) throw new Error("WebGL is unavailable.");
 
       this.setup();
       this.resize();
     }
 
-
-    // ------------------------------------------------------------------------
-    // Shader compiler
-    // ------------------------------------------------------------------------
-
-    shader(type, source) {
+    createShader(type, source) {
       const shader = this.gl.createShader(type);
 
-      this.gl.shaderSource(
-        shader,
-        source
-      );
+      this.gl.shaderSource(shader, source);
+      this.gl.compileShader(shader);
 
-      this.gl.compileShader(
-        shader
-      );
-
-      if (
-        !this.gl.getShaderParameter(
-          shader,
-          this.gl.COMPILE_STATUS
-        )
-      ) {
-        throw new Error(
-          this.gl.getShaderInfoLog(shader)
-        );
+      if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
+        throw new Error(this.gl.getShaderInfoLog(shader));
       }
 
       return shader;
     }
 
-
-    // ------------------------------------------------------------------------
-    // Setup
-    // ------------------------------------------------------------------------
-
     setup() {
       const gl = this.gl;
-
-
-      // ======================================================================
-      // Vertex shader
-      // ======================================================================
 
       const vertex = `
         attribute vec2 aPosition;
@@ -127,15 +51,8 @@ window.TransitionEngine = (() => {
         }
       `;
 
-
-      // ======================================================================
-      // Fragment shader
-      // ======================================================================
-
       const fragment = `
         precision highp float;
-
-        varying vec2 vUv;
 
         uniform sampler2D uFrom;
         uniform sampler2D uTo;
@@ -144,31 +61,22 @@ window.TransitionEngine = (() => {
         uniform vec2 uFromSize;
         uniform vec2 uToSize;
 
-        uniform vec2 uCenter;
-
         uniform float uProgress;
-
-        uniform float uRevealStart;
-        uniform float uRevealEnd;
-
-        uniform float uShapeScale;
-        uniform float uShapeIrregularity;
-
-        uniform float uVShapeAmount;
-
+        uniform float uStartSize;
+        uniform float uRadius;
+        uniform float uSoftness;
+        uniform float uNoiseScale;
+        uniform float uNoiseAmount;
+        uniform float uEdgeBand;
         uniform float uDistortion;
-        uniform float uDissolveSpread;
-
-        uniform float uDustBandWidth;
-        uniform float uDotScale;
-
-        uniform float uEdgeOpacity;
-        uniform float uColorMix;
         uniform float uGrain;
+        uniform float uCenterX;
+        uniform float uCenterY;
+
+        varying vec2 vUv;
 
 
-
-        float hash21(vec2 p) {
+        float hash(vec2 p) {
           p = fract(
             p *
             vec2(
@@ -183,198 +91,158 @@ window.TransitionEngine = (() => {
           );
 
           return fract(
-            p.x * p.y
+            p.x *
+            p.y
           );
         }
 
 
-
-        float valueNoise(vec2 p) {
-          vec2 i = floor(p);
-          vec2 f = fract(p);
-
-          f =
-            f *
-            f *
-            (
-              3.0 -
-              2.0 * f
-            );
-
-          float a =
-            hash21(i);
-
-          float b =
-            hash21(
-              i +
-              vec2(
-                1.0,
-                0.0
+        float blueNoise(vec2 p) {
+          return fract(
+            52.9829189 *
+            fract(
+              dot(
+                p,
+                vec2(
+                  0.06711056,
+                  0.00583715
+                )
               )
-            );
-
-          float c =
-            hash21(
-              i +
-              vec2(
-                0.0,
-                1.0
-              )
-            );
-
-          float d =
-            hash21(
-              i +
-              vec2(
-                1.0,
-                1.0
-              )
-            );
-
-          return mix(
-            mix(
-              a,
-              b,
-              f.x
-            ),
-
-            mix(
-              c,
-              d,
-              f.x
-            ),
-
-            f.y
+            )
           );
         }
 
 
-
-        float fbm(vec2 p) {
-          float value = 0.0;
-          float amplitude = 0.5;
-
-          for (
-            int i = 0;
-            i < 5;
-            i++
-          ) {
-            value +=
-              valueNoise(p) *
-              amplitude;
-
-            p =
-              p * 2.03 +
-              vec2(
-                13.7,
-                7.3
-              );
-
-            amplitude *= 0.5;
-          }
-
-          return value;
-        }
-
-
-
-        vec2 coverUv(
+        vec2 coverUvCenter(
           vec2 uv,
           vec2 imageSize,
           vec2 canvasSize
         ) {
-          float imageRatio =
+          float ir =
             imageSize.x /
             imageSize.y;
 
-          float canvasRatio =
+          float cr =
             canvasSize.x /
             canvasSize.y;
 
-          vec2 scale =
+          vec2 s =
             vec2(1.0);
 
-          vec2 offset =
+          vec2 o =
             vec2(0.0);
 
 
-          if (
-            imageRatio >
-            canvasRatio
-          ) {
-            scale.x =
-              canvasRatio /
-              imageRatio;
+          if (ir > cr) {
+            s.x =
+              cr /
+              ir;
 
-            offset.x =
+            o.x =
               (
                 1.0 -
-                scale.x
+                s.x
               ) *
               0.5;
 
           } else {
-            scale.y =
-              imageRatio /
-              canvasRatio;
+            s.y =
+              ir /
+              cr;
 
-            offset.y =
+            o.y =
               (
                 1.0 -
-                scale.y
+                s.y
               ) *
               0.5;
           }
 
 
           return
-            uv * scale +
-            offset;
+            uv *
+            s +
+            o;
         }
 
 
+        vec2 coverUvTop(
+          vec2 uv,
+          vec2 imageSize,
+          vec2 canvasSize
+        ) {
+          float ir =
+            imageSize.x /
+            imageSize.y;
 
-        vec3 palette(float t) {
-          vec3 a =
-            vec3(
-              0.46,
-              0.48,
-              0.52
-            );
+          float cr =
+            canvasSize.x /
+            canvasSize.y;
 
-          vec3 b =
-            vec3(
-              0.48,
-              0.42,
-              0.36
-            );
+          vec2 s =
+            vec2(1.0);
 
-          vec3 c =
-            vec3(
-              1.0,
-              1.0,
-              1.0
-            );
+          vec2 o =
+            vec2(0.0);
 
-          vec3 d =
-            vec3(
-              0.0,
-              0.17,
-              0.33
-            );
+
+          if (ir > cr) {
+            s.x =
+              cr /
+              ir;
+
+            o.x =
+              (
+                1.0 -
+                s.x
+              ) *
+              0.5;
+
+          } else {
+            s.y =
+              ir /
+              cr;
+
+            o.y =
+              0.0;
+          }
+
 
           return
-            a +
-            b *
-            cos(
-              6.28318 *
-              (
-                c * t +
-                d
-              )
-            );
+            uv *
+            s +
+            o;
         }
 
+
+        float roundedBoxSdf(
+          vec2 p,
+          vec2 b,
+          float r
+        ) {
+          vec2 q =
+            abs(p) -
+            b +
+            r;
+
+          return
+            min(
+              max(
+                q.x,
+                q.y
+              ),
+              0.0
+            )
+            +
+            length(
+              max(
+                q,
+                0.0
+              )
+            )
+            -
+            r;
+        }
 
 
         void main() {
@@ -382,372 +250,195 @@ window.TransitionEngine = (() => {
             vUv;
 
 
-          // ----------------------------------------------------------
-          // Transition progress
-          // ----------------------------------------------------------
+          vec2 center =
+            vec2(
+              uCenterX,
+              uCenterY
+            );
 
-          float localProgress =
-            clamp(
-              (
-                uProgress -
-                uRevealStart
-              )
-              /
-              max(
-                0.0001,
-                uRevealEnd -
-                uRevealStart
-              ),
-              0.0,
+
+          vec2 aspect =
+            vec2(
+              uResolution.x /
+              uResolution.y,
               1.0
             );
 
 
-          // ----------------------------------------------------------
-          // Center space
-          // ----------------------------------------------------------
-
-          vec2 centered =
-            uv -
-            uCenter;
-
-
-          centered.x *=
-            uResolution.x /
-            uResolution.y;
-
-
-          float angle =
-            atan(
-              centered.y,
-              centered.x
-            );
-
-
-          float radius =
-            length(
-              centered
-            );
-
-
-          // ----------------------------------------------------------
-          // V-shape deformation
-          // ----------------------------------------------------------
-
-          float vShape =
-            abs(
-              centered.x
+          vec2 p =
+            (
+              uv -
+              center
             )
             *
-            uVShapeAmount
-            *
-            (
-              0.6 +
-              0.4 *
-              sin(
-                angle *
-                3.0
+            aspect;
+
+
+          float maxHalfWidth =
+            0.5 *
+            aspect.x;
+
+
+          float maxHalfHeight =
+            0.5;
+
+
+          float startHalf =
+            uStartSize;
+
+
+          vec2 halfSize =
+            mix(
+              vec2(
+                startHalf
+              ),
+              vec2(
+                maxHalfWidth,
+                maxHalfHeight
+              ),
+              uProgress
+            );
+
+
+          float pixelNoise =
+            blueNoise(
+              floor(
+                gl_FragCoord.xy *
+                max(
+                  0.1,
+                  uNoiseScale /
+                  700.0
+                )
               )
             );
 
 
-          // ----------------------------------------------------------
-          // Irregular shape
-          // ----------------------------------------------------------
-
-          float edgeNoise =
-            (
-              fbm(
-                centered *
-                uShapeScale +
-                2.0
+          float clustered =
+            0.65 *
+            pixelNoise
+            +
+            0.35 *
+            blueNoise(
+              floor(
+                gl_FragCoord.xy *
+                0.17
               )
-              -
+            );
+
+
+          float signedNoise =
+            (
+              clustered -
               0.5
             )
             *
-            uShapeIrregularity;
+            uNoiseAmount;
 
 
-          // ----------------------------------------------------------
-          // Angular distortion
-          // ----------------------------------------------------------
-
-          float angularWarp =
-            sin(
-              angle *
-              5.0
-              +
-              fbm(
-                centered *
-                4.0
-              )
-              *
-              3.0
+          float distance =
+            roundedBoxSdf(
+              p,
+              halfSize,
+              uRadius
             )
-            *
-            uDistortion;
+            +
+            signedNoise;
 
 
-          // ----------------------------------------------------------
-          // Final shape field
-          // ----------------------------------------------------------
-
-          float shapeDistance =
-            radius +
-            vShape +
-            edgeNoise +
-            angularWarp;
-
-
-          float maxRadius =
-            1.15;
-
-
-          float threshold =
-            localProgress *
-            maxRadius;
-
-
-          // ----------------------------------------------------------
-          // Image dissolve
-          // ----------------------------------------------------------
-
-          float dissolve =
+          float reveal =
             1.0
             -
             smoothstep(
-              threshold -
-              uDissolveSpread,
-
-              threshold +
-              uDissolveSpread,
-
-              shapeDistance
+              -uSoftness,
+              uSoftness,
+              distance
             );
 
 
-          // ----------------------------------------------------------
-          // Textures
-          // ----------------------------------------------------------
+          vec2 warp =
+            vec2(
+              (
+                pixelNoise -
+                0.5
+              )
+              *
+              uDistortion
+            );
 
-          vec4 fromColor =
+
+          vec3 fromColor =
             texture2D(
               uFrom,
 
-              coverUv(
-                uv,
+              coverUvCenter(
+                uv -
+                warp,
                 uFromSize,
                 uResolution
               )
-            );
+            ).rgb;
 
 
-          vec4 toColor =
+          vec3 toColor =
             texture2D(
               uTo,
 
-              coverUv(
-                uv,
+              coverUvTop(
+                uv +
+                warp,
                 uToSize,
                 uResolution
               )
-            );
+            ).rgb;
 
 
           vec3 color =
             mix(
-              fromColor.rgb,
-              toColor.rgb,
-              dissolve
+              fromColor,
+              toColor,
+              reveal
             );
 
 
-          // ----------------------------------------------------------
-          // Dust edge
-          // ----------------------------------------------------------
-
-          float boundary =
-            abs(
-              shapeDistance -
-              threshold
-            );
-
-
-          float dustBand =
+          float edge =
             1.0
             -
             smoothstep(
               0.0,
-              uDustBandWidth,
-              boundary
-            );
-
-
-          vec2 grid =
-            floor(
-              gl_FragCoord.xy
-              /
-              max(
-                1.0,
-                uDotScale
+              uEdgeBand,
+              abs(
+                distance
               )
             );
 
 
-          float blueNoise =
-            hash21(
-              grid +
-              vec2(
-                17.0,
-                93.0
-              )
-            );
-
-
-          float dots =
+          float binaryDots =
             step(
-              0.26
-              +
-              (
-                1.0 -
-                dustBand
-              )
-              *
-              0.58,
-
-              blueNoise
+              0.42,
+              clustered
             )
             *
-            dustBand;
-
-
-          // ----------------------------------------------------------
-          // Multicolor dust
-          // ----------------------------------------------------------
-
-          float colorSeed =
-            hash21(
-              grid *
-              0.73
-              +
-              vec2(
-                11.0,
-                29.0
-              )
-            );
-
-
-          vec3 multiColor =
-            palette(
-              colorSeed
-            );
-
-
-          vec3 sampledColor =
-            mix(
-              fromColor.rgb,
-              toColor.rgb,
-              0.5
-            );
-
-
-          vec3 dustColor =
-            mix(
-              sampledColor,
-              multiColor,
-              uColorMix
-            );
-
-
-          // ----------------------------------------------------------
-          // Clean start / clean finish
-          // ----------------------------------------------------------
-
-          float startVisibility =
-            smoothstep(
-              0.015,
-              0.06,
-              localProgress
-            );
-
-
-          float endVisibility =
-            1.0
-            -
-            smoothstep(
-              0.94,
-              1.0,
-              localProgress
-            );
-
-
-          dots *=
-            startVisibility *
-            endVisibility;
+            edge;
 
 
           color =
             mix(
               color,
-              dustColor,
-              dots *
-              uEdgeOpacity
+              toColor,
+              binaryDots
             );
 
 
-          // Keep original image perfectly clean at the start.
-
-          color =
-            mix(
-              fromColor.rgb,
-              color,
-              startVisibility
-            );
-
-
-          // Force target image completely clean at the end.
-
-          float finish =
-            smoothstep(
-              0.965,
-              1.0,
-              localProgress
-            );
-
-
-          color =
-            mix(
-              color,
-              toColor.rgb,
-              finish
-            );
-
-
-          // ----------------------------------------------------------
-          // Grain
-          // ----------------------------------------------------------
-
-          float grain =
+          color +=
             (
-              hash21(
+              hash(
                 gl_FragCoord.xy
-                +
-                localProgress *
-                173.0
               )
               -
               0.5
             )
             *
-            uGrain
-            *
-            startVisibility
-            *
-            endVisibility;
-
-
-          color += grain;
+            uGrain;
 
 
           gl_FragColor =
@@ -759,17 +450,13 @@ window.TransitionEngine = (() => {
       `;
 
 
-      // ======================================================================
-      // Program
-      // ======================================================================
-
       const program =
         gl.createProgram();
 
 
       gl.attachShader(
         program,
-        this.shader(
+        this.createShader(
           gl.VERTEX_SHADER,
           vertex
         )
@@ -778,7 +465,7 @@ window.TransitionEngine = (() => {
 
       gl.attachShader(
         program,
-        this.shader(
+        this.createShader(
           gl.FRAGMENT_SHADER,
           fragment
         )
@@ -804,130 +491,47 @@ window.TransitionEngine = (() => {
       }
 
 
-      const uniform = name =>
-        gl.getUniformLocation(
-          program,
-          name
-        );
-
-
       this.program =
         program;
 
 
-      this.locations = {
-        position:
-          gl.getAttribLocation(
-            program,
-            "aPosition"
-          ),
-
-        uv:
-          gl.getAttribLocation(
-            program,
-            "aUv"
-          ),
-
-        from:
-          uniform(
-            "uFrom"
-          ),
-
-        to:
-          uniform(
-            "uTo"
-          ),
-
-        resolution:
-          uniform(
-            "uResolution"
-          ),
-
-        fromSize:
-          uniform(
-            "uFromSize"
-          ),
-
-        toSize:
-          uniform(
-            "uToSize"
-          ),
-
-        center:
-          uniform(
-            "uCenter"
-          ),
-
-        progress:
-          uniform(
-            "uProgress"
-          ),
-
-        revealStart:
-          uniform(
-            "uRevealStart"
-          ),
-
-        revealEnd:
-          uniform(
-            "uRevealEnd"
-          ),
-
-        shapeScale:
-          uniform(
-            "uShapeScale"
-          ),
-
-        shapeIrregularity:
-          uniform(
-            "uShapeIrregularity"
-          ),
-
-        vShapeAmount:
-          uniform(
-            "uVShapeAmount"
-          ),
-
-        distortion:
-          uniform(
-            "uDistortion"
-          ),
-
-        dissolveSpread:
-          uniform(
-            "uDissolveSpread"
-          ),
-
-        dustBandWidth:
-          uniform(
-            "uDustBandWidth"
-          ),
-
-        dotScale:
-          uniform(
-            "uDotScale"
-          ),
-
-        edgeOpacity:
-          uniform(
-            "uEdgeOpacity"
-          ),
-
-        colorMix:
-          uniform(
-            "uColorMix"
-          ),
-
-        grain:
-          uniform(
-            "uGrain"
-          )
-      };
+      this.locations =
+        {};
 
 
-      // ======================================================================
-      // Fullscreen quad
-      // ======================================================================
+      [
+        "aPosition",
+        "aUv",
+        "uFrom",
+        "uTo",
+        "uResolution",
+        "uFromSize",
+        "uToSize",
+        "uProgress",
+        "uStartSize",
+        "uRadius",
+        "uSoftness",
+        "uNoiseScale",
+        "uNoiseAmount",
+        "uEdgeBand",
+        "uDistortion",
+        "uGrain",
+        "uCenterX",
+        "uCenterY"
+      ].forEach(name => {
+
+        this.locations[name] =
+          name.startsWith("a")
+            ? gl.getAttribLocation(
+                program,
+                name
+              )
+            : gl.getUniformLocation(
+                program,
+                name
+              );
+      });
+
 
       this.buffer =
         gl.createBuffer();
@@ -956,10 +560,6 @@ window.TransitionEngine = (() => {
       );
     }
 
-
-    // ------------------------------------------------------------------------
-    // Texture
-    // ------------------------------------------------------------------------
 
     createTexture(
       image,
@@ -1032,10 +632,6 @@ window.TransitionEngine = (() => {
     }
 
 
-    // ------------------------------------------------------------------------
-    // Images
-    // ------------------------------------------------------------------------
-
     setImages(
       fromImage,
       toImage
@@ -1088,10 +684,6 @@ window.TransitionEngine = (() => {
     }
 
 
-    // ------------------------------------------------------------------------
-    // Resize
-    // ------------------------------------------------------------------------
-
     resize() {
       const rect =
         this.canvas.getBoundingClientRect();
@@ -1111,28 +703,16 @@ window.TransitionEngine = (() => {
         ).matches;
 
 
-      const mobileDPR =
-        CONFIG?.performance?.mobileDPR ??
-        1;
-
-
-      const desktopDPR =
-        CONFIG?.performance?.desktopDPR ??
-        1.5;
-
-
       const dpr =
         mobile
-
-          ? mobileDPR
-
+          ? CONFIG.performance.mobileDPR
           : Math.min(
               devicePixelRatio || 1,
-              desktopDPR
+              CONFIG.performance.desktopDPR
             );
 
 
-      const width =
+      this.canvas.width =
         Math.max(
           1,
           Math.round(
@@ -1142,7 +722,7 @@ window.TransitionEngine = (() => {
         );
 
 
-      const height =
+      this.canvas.height =
         Math.max(
           1,
           Math.round(
@@ -1152,25 +732,9 @@ window.TransitionEngine = (() => {
         );
 
 
-      if (
-        this.canvas.width !== width ||
-        this.canvas.height !== height
-      ) {
-        this.canvas.width =
-          width;
-
-        this.canvas.height =
-          height;
-      }
-
-
       this.render();
     }
 
-
-    // ------------------------------------------------------------------------
-    // Render
-    // ------------------------------------------------------------------------
 
     render() {
       if (
@@ -1184,12 +748,12 @@ window.TransitionEngine = (() => {
         this.gl;
 
 
-      const L =
-        this.locations;
-
-
       const s =
         this.settings;
+
+
+      const L =
+        this.locations;
 
 
       gl.viewport(
@@ -1212,12 +776,12 @@ window.TransitionEngine = (() => {
 
 
       gl.enableVertexAttribArray(
-        L.position
+        L.aPosition
       );
 
 
       gl.vertexAttribPointer(
-        L.position,
+        L.aPosition,
         2,
         gl.FLOAT,
         false,
@@ -1227,12 +791,12 @@ window.TransitionEngine = (() => {
 
 
       gl.enableVertexAttribArray(
-        L.uv
+        L.aUv
       );
 
 
       gl.vertexAttribPointer(
-        L.uv,
+        L.aUv,
         2,
         gl.FLOAT,
         false,
@@ -1240,8 +804,6 @@ window.TransitionEngine = (() => {
         8
       );
 
-
-      // From
 
       gl.activeTexture(
         gl.TEXTURE0
@@ -1255,12 +817,10 @@ window.TransitionEngine = (() => {
 
 
       gl.uniform1i(
-        L.from,
+        L.uFrom,
         0
       );
 
-
-      // To
 
       gl.activeTexture(
         gl.TEXTURE1
@@ -1274,136 +834,95 @@ window.TransitionEngine = (() => {
 
 
       gl.uniform1i(
-        L.to,
+        L.uTo,
         1
       );
 
 
-      // Resolution
-
       gl.uniform2f(
-        L.resolution,
+        L.uResolution,
         this.canvas.width,
         this.canvas.height
       );
 
 
       gl.uniform2f(
-        L.fromSize,
-
-        this.fromImage.naturalWidth ||
-        this.fromImage.width,
-
-        this.fromImage.naturalHeight ||
-        this.fromImage.height
+        L.uFromSize,
+        this.fromImage.naturalWidth,
+        this.fromImage.naturalHeight
       );
 
 
       gl.uniform2f(
-        L.toSize,
-
-        this.toImage.naturalWidth ||
-        this.toImage.width,
-
-        this.toImage.naturalHeight ||
-        this.toImage.height
-      );
-
-
-      // Center
-
-      gl.uniform2f(
-        L.center,
-        s.centerX,
-        s.centerY
-      );
-
-
-      // Progress
-
-      gl.uniform1f(
-        L.progress,
-
-        Math.max(
-          0,
-
-          Math.min(
-            1,
-            this.progress
-          )
-        )
+        L.uToSize,
+        this.toImage.naturalWidth,
+        this.toImage.naturalHeight
       );
 
 
       gl.uniform1f(
-        L.revealStart,
-        s.revealStart
+        L.uProgress,
+        this.progress
       );
 
 
       gl.uniform1f(
-        L.revealEnd,
-        s.revealEnd
+        L.uStartSize,
+        s.startSize
       );
 
 
       gl.uniform1f(
-        L.shapeScale,
-        s.shapeScale
+        L.uRadius,
+        s.cornerRadius
       );
 
 
       gl.uniform1f(
-        L.shapeIrregularity,
-        s.shapeIrregularity
+        L.uSoftness,
+        s.edgeSoftness
       );
 
 
       gl.uniform1f(
-        L.vShapeAmount,
-        s.vShapeAmount
+        L.uNoiseScale,
+        s.noiseScale
       );
 
 
       gl.uniform1f(
-        L.distortion,
+        L.uNoiseAmount,
+        s.noiseAmount
+      );
+
+
+      gl.uniform1f(
+        L.uEdgeBand,
+        s.edgeBand
+      );
+
+
+      gl.uniform1f(
+        L.uDistortion,
         s.distortion
       );
 
 
       gl.uniform1f(
-        L.dissolveSpread,
-        s.dissolveSpread
-      );
-
-
-      gl.uniform1f(
-        L.dustBandWidth,
-        s.dustBandWidth
-      );
-
-
-      gl.uniform1f(
-        L.dotScale,
-        s.dotScale
-      );
-
-
-      gl.uniform1f(
-        L.edgeOpacity,
-        s.edgeOpacity
-      );
-
-
-      gl.uniform1f(
-        L.colorMix,
-        s.colorMix
-      );
-
-
-      gl.uniform1f(
-        L.grain,
+        L.uGrain,
         s.grain
+      );
+
+
+      gl.uniform1f(
+        L.uCenterX,
+        s.centerX
+      );
+
+
+      gl.uniform1f(
+        L.uCenterY,
+        s.centerY
       );
 
 
@@ -1424,10 +943,11 @@ window.TransitionEngine = (() => {
 
 
 
-
 // ============================================================================
-// TRANSITION 02
-// BLUE NOISE / DUST TRANSITION
+// TRANSITION 2
+// YELLOW ORGANIC REVEAL
+//
+// Old BlueNoise names are intentionally kept so app.js stays compatible.
 // ============================================================================
 
 window.BlueNoiseTransitionEngine = (() => {
@@ -1454,27 +974,35 @@ window.BlueNoiseTransitionEngine = (() => {
       this.settings =
         Object.assign(
           {
-            softness: 0.005,
+            yellowStart: 0.00,
 
-            noiseScale: 6.5,
+            yellowEnd: 0.28,
 
-            noiseAmount: 0.09,
+            revealStart: 0.18,
 
-            dotScale: 2.6,
+            revealEnd: 1.00,
 
-            distortion: 0.006,
+            centerX: 0.56,
 
-            grain: 0.03,
+            centerY: 0.48,
 
-            edgeWidth: 0.15,
+            openingScale: 1.10,
 
-            edgeOpacity: 0.72,
+            softness: 0.095,
 
-            edgeColor: [
-              0.91,
-              0.87,
-              0.78
-            ]
+            edgeIrregularity: 0.12,
+
+            shapeStretchX: 1.18,
+
+            shapeStretchY: 0.88,
+
+            paperNoise: 0.035,
+
+            vignette: 0.18,
+
+            yellowColor: "#efe7d1",
+
+            yellowOpacity: 0.72
           },
 
           settings
@@ -1525,7 +1053,7 @@ window.BlueNoiseTransitionEngine = (() => {
         !this.gl
       ) {
         throw new Error(
-          "[blue-noise-transition] WebGL is unavailable."
+          "[YellowReveal] WebGL is unavailable."
         );
       }
 
@@ -1575,6 +1103,85 @@ window.BlueNoiseTransitionEngine = (() => {
     }
 
 
+    hexToRgb01(hex) {
+      const clean =
+        String(
+          hex ||
+          "#efe7d1"
+        ).replace(
+          "#",
+          ""
+        );
+
+
+      const normalized =
+        clean.length === 3
+
+          ? clean
+              .split("")
+              .map(
+                char =>
+                  char +
+                  char
+              )
+              .join("")
+
+          : clean;
+
+
+      const value =
+        parseInt(
+          normalized,
+          16
+        );
+
+
+      if (
+        !Number.isFinite(
+          value
+        )
+      ) {
+        return [
+          0.937,
+          0.906,
+          0.820
+        ];
+      }
+
+
+      return [
+        (
+          (
+            value >>
+            16
+          )
+          &
+          255
+        )
+        /
+        255,
+
+        (
+          (
+            value >>
+            8
+          )
+          &
+          255
+        )
+        /
+        255,
+
+        (
+          value &
+          255
+        )
+        /
+        255
+      ];
+    }
+
+
     setup() {
       const gl =
         this.gl;
@@ -1603,6 +1210,9 @@ window.BlueNoiseTransitionEngine = (() => {
         precision highp float;
 
 
+        varying vec2 vUv;
+
+
         uniform sampler2D uFrom;
         uniform sampler2D uTo;
 
@@ -1613,111 +1223,68 @@ window.BlueNoiseTransitionEngine = (() => {
 
         uniform vec2 uToSize;
 
+        uniform vec2 uCenter;
+
 
         uniform float uProgress;
 
+
+        uniform float uYellowStart;
+
+        uniform float uYellowEnd;
+
+
+        uniform float uRevealStart;
+
+        uniform float uRevealEnd;
+
+
+        uniform float uOpeningScale;
+
         uniform float uSoftness;
 
-        uniform float uNoiseScale;
-
-        uniform float uNoiseAmount;
-
-        uniform float uDotScale;
-
-        uniform float uDistortion;
-
-        uniform float uGrain;
-
-        uniform float uEdgeWidth;
-
-        uniform float uEdgeOpacity;
-
-        uniform vec3 uEdgeColor;
+        uniform float uEdgeIrregularity;
 
 
-        varying vec2 vUv;
+        uniform float uShapeStretchX;
+
+        uniform float uShapeStretchY;
+
+
+        uniform float uPaperNoise;
+
+        uniform float uVignette;
+
+
+        uniform vec3 uYellowColor;
+
+        uniform float uYellowOpacity;
 
 
 
-        float hash12(vec2 p) {
+        float hash21(vec2 p) {
 
-          vec3 p3 =
+          p =
             fract(
-              vec3(
-                p.xyx
+              p *
+              vec2(
+                123.34,
+                456.21
               )
-              *
-              0.1031
             );
 
 
-          p3 +=
+          p +=
             dot(
-              p3,
-
-              p3.yzx +
-              33.33
+              p,
+              p + 45.32
             );
 
 
           return
             fract(
-              (
-                p3.x +
-                p3.y
-              )
-              *
-              p3.z
-            );
-        }
-
-
-
-        float blueNoise(
-          vec2 pixel,
-          float scale,
-          vec2 offset
-        ) {
-
-          vec2 cell =
-            floor(
-
-              pixel /
-
-              max(
-                0.25,
-                scale
-              )
-
-              +
-
-              offset
-            );
-
-
-          float a =
-            hash12(
-              cell
-            );
-
-
-          float b =
-            hash12(
-
-              cell *
-              0.754877666
-
-              +
-
-              19.19
-            );
-
-
-          return
-            fract(
-              a +
-              b *
-              0.61803398875
+              p.x *
+              p.y
             );
         }
 
@@ -1743,11 +1310,11 @@ window.BlueNoiseTransitionEngine = (() => {
 
 
           float a =
-            hash12(i);
+            hash21(i);
 
 
           float b =
-            hash12(
+            hash21(
               i +
               vec2(
                 1.0,
@@ -1757,7 +1324,7 @@ window.BlueNoiseTransitionEngine = (() => {
 
 
           float c =
-            hash12(
+            hash21(
               i +
               vec2(
                 0.0,
@@ -1767,7 +1334,7 @@ window.BlueNoiseTransitionEngine = (() => {
 
 
           float d =
-            hash12(
+            hash21(
               i +
               vec2(
                 1.0,
@@ -1802,7 +1369,7 @@ window.BlueNoiseTransitionEngine = (() => {
             0.0;
 
 
-          float amplitude =
+          float amp =
             0.5;
 
 
@@ -1813,24 +1380,28 @@ window.BlueNoiseTransitionEngine = (() => {
           ) {
 
             value +=
-              valueNoise(p) *
-              amplitude;
+              valueNoise(p)
+              *
+              amp;
 
 
             p =
-              p * 2.03 +
+              p *
+              2.03
+              +
               vec2(
                 11.7,
-                7.3
+                5.9
               );
 
 
-            amplitude *=
+            amp *=
               0.5;
           }
 
 
-          return value;
+          return
+            value;
         }
 
 
@@ -1841,61 +1412,46 @@ window.BlueNoiseTransitionEngine = (() => {
           vec2 canvasSize
         ) {
 
+          float screenRatio =
+            canvasSize.x /
+            canvasSize.y;
+
+
           float imageRatio =
             imageSize.x /
             imageSize.y;
-
-
-          float canvasRatio =
-            canvasSize.x /
-            canvasSize.y;
 
 
           vec2 scale =
             vec2(1.0);
 
 
-          vec2 offset =
-            vec2(0.0);
-
-
           if (
             imageRatio >
-            canvasRatio
+            screenRatio
           ) {
 
             scale.x =
-              canvasRatio /
+              screenRatio /
               imageRatio;
-
-
-            offset.x =
-              (
-                1.0 -
-                scale.x
-              ) *
-              0.5;
 
           } else {
 
             scale.y =
               imageRatio /
-              canvasRatio;
-
-
-            offset.y =
-              (
-                1.0 -
-                scale.y
-              ) *
-              0.5;
+              screenRatio;
           }
 
 
           return
-            uv *
-            scale +
-            offset;
+            (
+              uv -
+              0.5
+            )
+            *
+            scale
+            +
+            0.5;
         }
 
 
@@ -1906,329 +1462,436 @@ window.BlueNoiseTransitionEngine = (() => {
             vUv;
 
 
-          vec2 pixel =
-            gl_FragCoord.xy;
 
+          // ======================================================
+          // YELLOW PHASE
+          // ======================================================
 
-
-          float broadNoise =
-            fbm(
-              uv *
-              uNoiseScale
-              +
-              vec2(
-                3.17,
-                8.43
-              )
-            );
-
-
-
-          float blueA =
-            blueNoise(
-              pixel,
-              uDotScale,
-              vec2(
-                7.0,
-                31.0
-              )
-            );
-
-
-
-          float blueB =
-            blueNoise(
-              pixel,
-
-              uDotScale *
-              1.73,
-
-              vec2(
-                41.0,
-                13.0
-              )
-            );
-
-
-
-          // Bottom-to-top dissolve.
-
-          float baseFront =
-            1.08 -
-            uProgress *
-            2.16;
-
-
-
-          float noisyFront =
-            baseFront
-            +
-            (
-              broadNoise -
-              0.5
-            )
-            *
-            uNoiseAmount
-            +
-            (
-              blueA -
-              0.5
-            )
-            *
-            uNoiseAmount
-            *
-            0.42;
-
-
-
-          float signedDistance =
-            uv.y -
-            noisyFront;
-
-
-
-          float reveal =
-            smoothstep(
-              -uSoftness,
-              uSoftness,
-              signedDistance
-            );
-
-
-
-          float particleThreshold =
-            smoothstep(
-              0.26,
-              0.92,
-              uProgress
-            );
-
-
-
-          float particleReveal =
-            step(
-              1.0 -
-              particleThreshold,
-
-              blueB
-            )
-
-            *
-
-            (
-              1.0 -
-              smoothstep(
-                uEdgeWidth *
-                0.35,
-
-                uEdgeWidth *
-                1.65,
-
-                abs(
-                  signedDistance
-                )
-              )
-            );
-
-
-
-          reveal =
-            max(
-              reveal,
-
-              particleReveal *
-              0.72
-            );
-
-
-
-          float distortionNoise =
-            (
-              blueA -
-              0.5
-            )
-            *
-            uDistortion
-            *
-            (
-              1.0 -
-              abs(
-                reveal *
-                2.0 -
-                1.0
-              )
-            );
-
-
-
-          vec2 distortion =
-            vec2(
-              distortionNoise,
+          float yellowProgress =
+            clamp(
 
               (
-                broadNoise -
-                0.5
+                uProgress -
+                uYellowStart
               )
-              *
-              uDistortion
+
+              /
+
+              max(
+                0.0001,
+
+                uYellowEnd -
+                uYellowStart
+              ),
+
+              0.0,
+
+              1.0
             );
 
 
 
-          vec3 fromColor =
+          // ======================================================
+          // REVEAL PHASE
+          // ======================================================
+
+          float revealProgress =
+            clamp(
+
+              (
+                uProgress -
+                uRevealStart
+              )
+
+              /
+
+              max(
+                0.0001,
+
+                uRevealEnd -
+                uRevealStart
+              ),
+
+              0.0,
+
+              1.0
+            );
+
+
+
+          vec4 fromColor =
             texture2D(
+
               uFrom,
 
               coverUv(
-                uv -
-                distortion,
+                uv,
 
                 uFromSize,
 
                 uResolution
               )
-            ).rgb;
+            );
 
 
 
-          vec3 toColor =
+          vec4 toColor =
             texture2D(
+
               uTo,
 
               coverUv(
-                uv +
-                distortion,
+                uv,
 
                 uToSize,
 
                 uResolution
               )
-            ).rgb;
+            );
 
 
+
+          // ======================================================
+          // WASH CURRENT IMAGE YELLOW
+          // ======================================================
+
+          vec3 yellowMixed =
+            mix(
+
+              fromColor.rgb,
+
+              uYellowColor,
+
+              yellowProgress *
+              uYellowOpacity
+            );
+
+
+
+          // ======================================================
+          // ORGANIC OPENING POSITION
+          // ======================================================
+
+          vec2 p =
+            uv -
+            uCenter;
+
+
+          p.x *=
+            uResolution.x /
+            uResolution.y;
+
+
+          p.x /=
+            max(
+              0.001,
+              uShapeStretchX
+            );
+
+
+          p.y /=
+            max(
+              0.001,
+              uShapeStretchY
+            );
+
+
+
+          float radius =
+            length(p);
+
+
+
+          // ======================================================
+          // IRREGULAR EDGE
+          // ======================================================
+
+          float edgeNoise =
+            (
+              fbm(
+                p *
+                6.0
+                +
+                2.0
+              )
+
+              -
+
+              0.5
+            )
+
+            *
+
+            uEdgeIrregularity;
+
+
+
+          float directionalWarp =
+            sin(
+
+              atan(
+                p.y,
+                p.x
+              )
+
+              *
+
+              3.0
+
+              +
+
+              fbm(
+                p *
+                4.0
+              )
+
+              *
+
+              2.5
+            )
+
+            *
+
+            uEdgeIrregularity
+
+            *
+
+            0.38;
+
+
+
+          float organicDistance =
+            radius
+
+            +
+
+            edgeNoise
+
+            +
+
+            directionalWarp;
+
+
+
+          float threshold =
+            revealProgress
+
+            *
+
+            uOpeningScale;
+
+
+
+          float revealMask =
+            1.0
+
+            -
+
+            smoothstep(
+
+              threshold -
+              uSoftness,
+
+              threshold +
+              uSoftness,
+
+              organicDistance
+            );
+
+
+
+          // ======================================================
+          // MAIN IMAGE MIX
+          // ======================================================
 
           vec3 color =
             mix(
-              fromColor,
-              toColor,
-              reveal
+
+              yellowMixed,
+
+              toColor.rgb,
+
+              revealMask
             );
 
 
 
-          float dissolveBand =
-            max(
-              0.001,
-              uEdgeWidth
+          // ======================================================
+          // YELLOW EDGE HAZE
+          // ======================================================
+
+          float edgeDistance =
+            abs(
+              organicDistance -
+              threshold
             );
 
 
 
-          float edgeMask =
+          float edgeGlow =
             1.0
+
             -
+
             smoothstep(
-              dissolveBand *
-              0.12,
 
-              dissolveBand *
-              1.22,
+              0.0,
 
-              abs(
-                signedDistance
-              )
+              uSoftness *
+              2.3,
+
+              edgeDistance
             );
 
 
 
-          float brightDust =
-            step(
-              0.86,
-              blueB
-            )
-            *
-            edgeMask;
+          float revealVisibility =
+            smoothstep(
+
+              0.015,
+
+              0.07,
+
+              revealProgress
+            );
 
 
 
-          float whiteSpark =
-            step(
-              0.965,
-              blueA
-            )
-            *
-            edgeMask;
+          edgeGlow *=
+            revealVisibility;
 
 
 
-          float darkDust =
+          color =
+            mix(
+
+              color,
+
+              uYellowColor,
+
+              edgeGlow *
+              0.16
+            );
+
+
+
+          // ======================================================
+          // PAPER GRAIN
+          // ======================================================
+
+          float grain =
             (
-              1.0 -
-              step(
-                0.10,
-                blueA
+              hash21(
+
+                gl_FragCoord.xy
+
+                +
+
+                uProgress *
+                127.0
               )
+
+              -
+
+              0.5
             )
+
             *
-            edgeMask;
+
+            uPaperNoise;
 
 
 
-          color =
-            mix(
-              color,
-
-              uEdgeColor,
-
-              brightDust *
-              uEdgeOpacity *
-              0.48
-            );
+          color +=
+            grain;
 
 
 
-          color =
-            mix(
-              color,
+          // ======================================================
+          // VIGNETTE
+          // ======================================================
 
-              vec3(1.0),
+          float vignette =
+            smoothstep(
 
-              whiteSpark *
-              uEdgeOpacity *
-              0.18
+              0.95,
+
+              0.28,
+
+              distance(
+                uv,
+                vec2(0.5)
+              )
             );
 
 
 
           color *=
-            1.0
-            -
-            darkDust *
-            uEdgeOpacity *
-            0.16;
+            mix(
+
+              1.0 -
+              uVignette,
+
+              1.0,
+
+              vignette
+            );
 
 
 
-          float fineGrain =
-            blueNoise(
-              pixel,
-              0.82,
-              vec2(
-                19.0,
-                53.0
-              )
-            )
-            -
-            0.5;
+          // ======================================================
+          // CLEAN START
+          // ======================================================
+
+          float startVisibility =
+            smoothstep(
+
+              0.005,
+
+              0.04,
+
+              uProgress
+            );
 
 
 
-          color +=
-            vec3(
-              fineGrain
-            )
-            *
-            uGrain;
+          color =
+            mix(
+
+              fromColor.rgb,
+
+              color,
+
+              startVisibility
+            );
+
+
+
+          // ======================================================
+          // CLEAN END
+          // ======================================================
+
+          float finish =
+            smoothstep(
+
+              0.965,
+
+              1.0,
+
+              revealProgress
+            );
+
+
+
+          color =
+            mix(
+
+              color,
+
+              toColor.rgb,
+
+              finish
+            );
 
 
 
@@ -2297,11 +1960,13 @@ window.BlueNoiseTransitionEngine = (() => {
 
 
       this.locations = {
+
         position:
           gl.getAttribLocation(
             program,
             "aPosition"
           ),
+
 
         uv:
           gl.getAttribLocation(
@@ -2309,50 +1974,125 @@ window.BlueNoiseTransitionEngine = (() => {
             "aUv"
           ),
 
+
         from:
-          uniform("uFrom"),
+          uniform(
+            "uFrom"
+          ),
+
 
         to:
-          uniform("uTo"),
+          uniform(
+            "uTo"
+          ),
+
 
         resolution:
-          uniform("uResolution"),
+          uniform(
+            "uResolution"
+          ),
+
 
         fromSize:
-          uniform("uFromSize"),
+          uniform(
+            "uFromSize"
+          ),
+
 
         toSize:
-          uniform("uToSize"),
+          uniform(
+            "uToSize"
+          ),
+
+
+        center:
+          uniform(
+            "uCenter"
+          ),
+
 
         progress:
-          uniform("uProgress"),
+          uniform(
+            "uProgress"
+          ),
+
+
+        yellowStart:
+          uniform(
+            "uYellowStart"
+          ),
+
+
+        yellowEnd:
+          uniform(
+            "uYellowEnd"
+          ),
+
+
+        revealStart:
+          uniform(
+            "uRevealStart"
+          ),
+
+
+        revealEnd:
+          uniform(
+            "uRevealEnd"
+          ),
+
+
+        openingScale:
+          uniform(
+            "uOpeningScale"
+          ),
+
 
         softness:
-          uniform("uSoftness"),
+          uniform(
+            "uSoftness"
+          ),
 
-        noiseScale:
-          uniform("uNoiseScale"),
 
-        noiseAmount:
-          uniform("uNoiseAmount"),
+        edgeIrregularity:
+          uniform(
+            "uEdgeIrregularity"
+          ),
 
-        dotScale:
-          uniform("uDotScale"),
 
-        distortion:
-          uniform("uDistortion"),
+        shapeStretchX:
+          uniform(
+            "uShapeStretchX"
+          ),
 
-        grain:
-          uniform("uGrain"),
 
-        edgeWidth:
-          uniform("uEdgeWidth"),
+        shapeStretchY:
+          uniform(
+            "uShapeStretchY"
+          ),
 
-        edgeOpacity:
-          uniform("uEdgeOpacity"),
 
-        edgeColor:
-          uniform("uEdgeColor")
+        paperNoise:
+          uniform(
+            "uPaperNoise"
+          ),
+
+
+        vignette:
+          uniform(
+            "uVignette"
+          ),
+
+
+        yellowColor:
+          uniform(
+            "uYellowColor"
+          ),
+
+
+        yellowOpacity:
+          uniform(
+            "uYellowOpacity"
+          )
       };
 
 
@@ -2384,7 +2124,8 @@ window.BlueNoiseTransitionEngine = (() => {
     }
 
 
-    texture(
+
+    createTexture(
       image,
       unit
     ) {
@@ -2455,6 +2196,7 @@ window.BlueNoiseTransitionEngine = (() => {
     }
 
 
+
     setImages(
       fromImage,
       toImage
@@ -2486,14 +2228,14 @@ window.BlueNoiseTransitionEngine = (() => {
 
 
       this.fromTexture =
-        this.texture(
+        this.createTexture(
           fromImage,
           this.gl.TEXTURE0
         );
 
 
       this.toTexture =
-        this.texture(
+        this.createTexture(
           toImage,
           this.gl.TEXTURE1
         );
@@ -2505,6 +2247,7 @@ window.BlueNoiseTransitionEngine = (() => {
 
       this.render();
     }
+
 
 
     resize() {
@@ -2528,14 +2271,16 @@ window.BlueNoiseTransitionEngine = (() => {
 
       const dpr =
         mobile
+
           ? 1
+
           : Math.min(
               devicePixelRatio || 1,
               1.5
             );
 
 
-      this.canvas.width =
+      const width =
         Math.max(
           1,
           Math.round(
@@ -2545,7 +2290,7 @@ window.BlueNoiseTransitionEngine = (() => {
         );
 
 
-      this.canvas.height =
+      const height =
         Math.max(
           1,
           Math.round(
@@ -2555,8 +2300,22 @@ window.BlueNoiseTransitionEngine = (() => {
         );
 
 
+      if (
+        this.canvas.width !== width ||
+        this.canvas.height !== height
+      ) {
+        this.canvas.width =
+          width;
+
+
+        this.canvas.height =
+          height;
+      }
+
+
       this.render();
     }
+
 
 
     render() {
@@ -2691,9 +2450,54 @@ window.BlueNoiseTransitionEngine = (() => {
       );
 
 
+      gl.uniform2f(
+        L.center,
+        s.centerX,
+        s.centerY
+      );
+
+
       gl.uniform1f(
         L.progress,
-        this.progress
+
+        Math.max(
+          0,
+
+          Math.min(
+            1,
+            this.progress
+          )
+        )
+      );
+
+
+      gl.uniform1f(
+        L.yellowStart,
+        s.yellowStart
+      );
+
+
+      gl.uniform1f(
+        L.yellowEnd,
+        s.yellowEnd
+      );
+
+
+      gl.uniform1f(
+        L.revealStart,
+        s.revealStart
+      );
+
+
+      gl.uniform1f(
+        L.revealEnd,
+        s.revealEnd
+      );
+
+
+      gl.uniform1f(
+        L.openingScale,
+        s.openingScale
       );
 
 
@@ -2704,53 +2508,55 @@ window.BlueNoiseTransitionEngine = (() => {
 
 
       gl.uniform1f(
-        L.noiseScale,
-        s.noiseScale
+        L.edgeIrregularity,
+        s.edgeIrregularity
       );
 
 
       gl.uniform1f(
-        L.noiseAmount,
-        s.noiseAmount
+        L.shapeStretchX,
+        s.shapeStretchX
       );
 
 
       gl.uniform1f(
-        L.dotScale,
-        s.dotScale
+        L.shapeStretchY,
+        s.shapeStretchY
       );
 
 
       gl.uniform1f(
-        L.distortion,
-        s.distortion
+        L.paperNoise,
+        s.paperNoise
       );
 
 
       gl.uniform1f(
-        L.grain,
-        s.grain
+        L.vignette,
+        s.vignette
       );
 
 
-      gl.uniform1f(
-        L.edgeWidth,
-        s.edgeWidth
-      );
-
-
-      gl.uniform1f(
-        L.edgeOpacity,
-        s.edgeOpacity
-      );
+      const yellow =
+        this.hexToRgb01(
+          s.yellowColor
+        );
 
 
       gl.uniform3f(
-        L.edgeColor,
+        L.yellowColor,
 
-        s.edgeColor[0],
-        s.edgeColor[1],
-        s.edgeColor[2]
+        yellow[0],
+
+        yellow[1],
+
+        yellow[2]
+      );
+
+
+      gl.uniform1f(
+        L.yellowOpacity,
+        s.yellowOpacity
       );
 
 
@@ -2771,9 +2577,9 @@ window.BlueNoiseTransitionEngine = (() => {
 
 
 
-
 // ============================================================================
-// SECTION 3 CONTENT REVEAL
+// SECTION 3 CONTENT DUST REVEAL
+// UNCHANGED
 // ============================================================================
 
 window.SectionThreeContentRevealEngine = (() => {
@@ -2880,6 +2686,7 @@ window.SectionThreeContentRevealEngine = (() => {
     }
 
 
+
     shader(
       type,
       source
@@ -2919,6 +2726,7 @@ window.SectionThreeContentRevealEngine = (() => {
     }
 
 
+
     setup() {
       const gl =
         this.gl;
@@ -2931,7 +2739,6 @@ window.SectionThreeContentRevealEngine = (() => {
         varying vec2 vUv;
 
         void main() {
-
           vUv = aUv;
 
           gl_Position =
@@ -2993,6 +2800,7 @@ window.SectionThreeContentRevealEngine = (() => {
           p3 +=
             dot(
               p3,
+
               p3.yzx +
               33.33
             );
@@ -3041,9 +2849,12 @@ window.SectionThreeContentRevealEngine = (() => {
 
           float b =
             hash12(
+
               cell *
               0.754877666
+
               +
+
               19.19
             );
 
@@ -3148,12 +2959,15 @@ window.SectionThreeContentRevealEngine = (() => {
           ) {
 
             value +=
-              valueNoise(p) *
+              valueNoise(p)
+              *
               amplitude;
 
 
             p =
-              p * 2.03 +
+              p *
+              2.03
+              +
               vec2(
                 11.7,
                 7.3
@@ -3208,7 +3022,8 @@ window.SectionThreeContentRevealEngine = (() => {
               (
                 1.0 -
                 scale.y
-              ) *
+              )
+              *
               0.5;
 
           } else {
@@ -3222,7 +3037,8 @@ window.SectionThreeContentRevealEngine = (() => {
               (
                 1.0 -
                 scale.x
-              ) *
+              )
+              *
               0.5;
           }
 
@@ -3247,31 +3063,25 @@ window.SectionThreeContentRevealEngine = (() => {
           vec2 imageUv =
             containUv(
               vUv,
-
               uImageSize,
-
               uResolution
             );
 
 
           if (
-            imageUv.x <
-            0.0
+            imageUv.x < 0.0
 
             ||
 
-            imageUv.x >
-            1.0
+            imageUv.x > 1.0
 
             ||
 
-            imageUv.y <
-            0.0
+            imageUv.y < 0.0
 
             ||
 
-            imageUv.y >
-            1.0
+            imageUv.y > 1.0
           ) {
 
             gl_FragColor =
@@ -3437,9 +3247,12 @@ window.SectionThreeContentRevealEngine = (() => {
 
           float broad =
             fbm(
+
               imageUv *
               uNoiseScale
+
               +
+
               vec2(
                 2.7,
                 9.1
@@ -3605,8 +3418,11 @@ window.SectionThreeContentRevealEngine = (() => {
 
           vec3 color =
             mix(
+
               blurred.rgb,
+
               source.rgb,
+
               alphaMask
             );
 
@@ -3653,6 +3469,7 @@ window.SectionThreeContentRevealEngine = (() => {
 
           float fineGrain =
             blueNoise(
+
               pixel,
 
               0.82,
@@ -3746,11 +3563,13 @@ window.SectionThreeContentRevealEngine = (() => {
 
 
       this.locations = {
+
         position:
           gl.getAttribLocation(
             program,
             "aPosition"
           ),
+
 
         uv:
           gl.getAttribLocation(
@@ -3758,60 +3577,72 @@ window.SectionThreeContentRevealEngine = (() => {
             "aUv"
           ),
 
+
         image:
           uniform(
             "uImage"
           ),
+
 
         resolution:
           uniform(
             "uResolution"
           ),
 
+
         imageSize:
           uniform(
             "uImageSize"
           ),
+
 
         progress:
           uniform(
             "uProgress"
           ),
 
+
         softness:
           uniform(
             "uSoftness"
           ),
+
 
         noiseScale:
           uniform(
             "uNoiseScale"
           ),
 
+
         noiseAmount:
           uniform(
             "uNoiseAmount"
           ),
+
 
         dotScale:
           uniform(
             "uDotScale"
           ),
 
+
         grain:
           uniform(
             "uGrain"
           ),
+
 
         edgeWidth:
           uniform(
             "uEdgeWidth"
           ),
 
+
         edgeOpacity:
           uniform(
             "uEdgeOpacity"
           ),
+
 
         edgeColor:
           uniform(
@@ -3848,9 +3679,8 @@ window.SectionThreeContentRevealEngine = (() => {
     }
 
 
-    setImage(
-      image
-    ) {
+
+    setImage(image) {
       this.image =
         image;
 
@@ -3935,6 +3765,7 @@ window.SectionThreeContentRevealEngine = (() => {
     }
 
 
+
     resize() {
       const rect =
         this.canvas.getBoundingClientRect();
@@ -3956,9 +3787,7 @@ window.SectionThreeContentRevealEngine = (() => {
 
       const dpr =
         mobile
-
           ? 1
-
           : Math.min(
               devicePixelRatio || 1,
               1.5
@@ -3968,7 +3797,6 @@ window.SectionThreeContentRevealEngine = (() => {
       this.canvas.width =
         Math.max(
           1,
-
           Math.round(
             rect.width *
             dpr
@@ -3979,7 +3807,6 @@ window.SectionThreeContentRevealEngine = (() => {
       this.canvas.height =
         Math.max(
           1,
-
           Math.round(
             rect.height *
             dpr
@@ -3989,6 +3816,7 @@ window.SectionThreeContentRevealEngine = (() => {
 
       this.render();
     }
+
 
 
     render() {
@@ -4014,9 +3842,7 @@ window.SectionThreeContentRevealEngine = (() => {
       gl.viewport(
         0,
         0,
-
         this.canvas.width,
-
         this.canvas.height
       );
 
@@ -4041,7 +3867,6 @@ window.SectionThreeContentRevealEngine = (() => {
 
       gl.blendFunc(
         gl.ONE,
-
         gl.ONE_MINUS_SRC_ALPHA
       );
 
@@ -4064,15 +3889,10 @@ window.SectionThreeContentRevealEngine = (() => {
 
       gl.vertexAttribPointer(
         L.position,
-
         2,
-
         gl.FLOAT,
-
         false,
-
         16,
-
         0
       );
 
@@ -4084,15 +3904,10 @@ window.SectionThreeContentRevealEngine = (() => {
 
       gl.vertexAttribPointer(
         L.uv,
-
         2,
-
         gl.FLOAT,
-
         false,
-
         16,
-
         8
       );
 
@@ -4116,18 +3931,14 @@ window.SectionThreeContentRevealEngine = (() => {
 
       gl.uniform2f(
         L.resolution,
-
         this.canvas.width,
-
         this.canvas.height
       );
 
 
       gl.uniform2f(
         L.imageSize,
-
         this.image.width,
-
         this.image.height
       );
 
