@@ -9,45 +9,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const { gsap, ScrollTrigger } = window;
   const CONFIG = window.EXPERIENCE_CONFIG;
 
-  // ============================================================
-  // ENGINE SAFETY CHECKS
-  // ============================================================
-
-  if (!CONFIG) {
-    console.error(
-      "[preview] EXPERIENCE_CONFIG is missing. Make sure config.js loads before app.js."
-    );
-    return;
-  }
-
-  if (!window.ExperienceUtils) {
-    console.error(
-      "[preview] ExperienceUtils is missing. Check utils.js."
-    );
-    return;
-  }
-
-  if (!window.SequenceEngine) {
-    console.error(
-      "[preview] SequenceEngine is missing. Check sequence-engine.js."
-    );
-    return;
-  }
-
-  if (!window.TransitionEngine) {
-    console.error(
-      "[preview] TransitionEngine is missing. Check transition-engine.js."
-    );
-    return;
-  }
-
-  if (!window.BlueNoiseTransitionEngine) {
-    console.error(
-      "[preview] BlueNoiseTransitionEngine is missing. Check transition-engine.js."
-    );
-    return;
-  }
-
   const {
     rangeProgress,
     loadImageFromHtmlElement
@@ -66,77 +27,103 @@ document.addEventListener("DOMContentLoaded", async () => {
     BlueNoiseDustTransition
   } = window.BlueNoiseTransitionEngine;
 
-  // ============================================================
-  // CLASS SAFETY CHECKS
-  // ============================================================
 
-  if (!OrganicRectangleReveal) {
-    console.error(
-      "[preview] OrganicRectangleReveal is missing from TransitionEngine."
-    );
-    return;
-  }
+  gsap.registerPlugin(
+    ScrollTrigger
+  );
 
-  if (!BlueNoiseDustTransition) {
-    console.error(
-      "[preview] BlueNoiseDustTransition is missing from BlueNoiseTransitionEngine."
-    );
-    return;
-  }
-
-  gsap.registerPlugin(ScrollTrigger);
 
   ScrollTrigger.config({
     ignoreMobileResize: true
   });
 
 
+
   // ============================================================
-  // DOM ELEMENTS
+  // DOM
   // ============================================================
 
   const stage =
-    document.querySelector(".section-stage");
+    document.querySelector(
+      ".section-stage"
+    );
+
 
   const pin =
-    document.querySelector(".stage-pin");
+    document.querySelector(
+      ".stage-pin"
+    );
+
 
 
   const heroSection =
-    document.querySelector(".hero_section");
+    document.querySelector(
+      ".hero_section"
+    );
+
 
   const heroCanvas =
-    document.querySelector(".hero_canvas-img-seq");
+    document.querySelector(
+      ".hero_canvas-img-seq"
+    );
+
 
   const heroInitialFrame =
-    document.querySelector(".hero_initial-frame");
+    document.querySelector(
+      ".hero_initial-frame"
+    );
+
 
   const transitionOneCanvas =
-    document.querySelector(".transition_canvas-1");
+    document.querySelector(
+      ".transition_canvas-1"
+    );
+
 
 
   const sectionTwo =
-    document.querySelector(".section_two");
+    document.querySelector(
+      ".section_two"
+    );
+
 
   const sectionTwoInner =
-    document.querySelector(".section_2-inner-tall");
+    document.querySelector(
+      ".section_2-inner-tall"
+    );
+
 
   const sectionTwoImage =
-    document.querySelector(".section_2_img");
+    document.querySelector(
+      ".section_2_img"
+    );
+
 
   const sectionTwoTexts =
-    gsap.utils.toArray(".section-2_text");
+    gsap.utils.toArray(
+      ".section-2_text"
+    );
+
 
 
   const transitionTwoCanvas =
-    document.querySelector(".transition_canvas-2-img");
+    document.querySelector(
+      ".transition_canvas-2-img"
+    );
+
 
   const sectionTwoSequenceCanvas =
-    document.querySelector(".section-2-img-seq");
+    document.querySelector(
+      ".section-2-img-seq"
+    );
+
 
 
   const sectionThree =
-    document.querySelector(".section_3");
+    document.querySelector(
+      ".section_3"
+    );
+
 
 
   const sectionThreeContent =
@@ -145,13 +132,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     );
 
 
+
   const sectionThreeRevealCanvas =
     sectionThreeContent?.querySelector(
       "[data-perlin-reveal-canvas]"
-    ) ||
+    )
+    ||
     sectionThreeContent?.querySelector(
       ".section-3-content-reveal"
     );
+
 
 
   const sectionThreeToFourCanvas =
@@ -160,12 +150,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     );
 
 
+
   const sectionFour =
-    document.querySelector(".section_4");
+    document.querySelector(
+      ".section_4"
+    );
+
 
 
   // ============================================================
-  // REQUIRED ELEMENT CHECK
+  // REQUIRED ELEMENTS
   // ============================================================
 
   const required = {
@@ -189,11 +183,19 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const missing =
     Object.entries(required)
-      .filter(([, element]) => !element)
-      .map(([key]) => key);
+      .filter(
+        ([, element]) =>
+          !element
+      )
+      .map(
+        ([key]) =>
+          key
+      );
 
 
-  if (missing.length) {
+  if (
+    missing.length
+  ) {
     console.error(
       `[preview] Missing elements: ${missing.join(", ")}`
     );
@@ -202,8 +204,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
 
+
   // ============================================================
-  // IMAGE SEQUENCE ENGINES
+  // SEQUENCE ENGINES
   // ============================================================
 
   const heroSource =
@@ -218,6 +221,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     );
 
 
+
   const sectionTwoSource =
     new SequenceSource(
       CONFIG.sectionTwoSequence
@@ -230,14 +234,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     );
 
 
+
   // ============================================================
   // TRANSITION 1
-  // ============================================================
-  //
-  // The class name remains OrganicRectangleReveal for compatibility,
-  // but transition-engine.js can now contain your NEW center reveal
-  // shader inside this class.
-  //
+  // ORIGINAL ORGANIC RECTANGLE
   // ============================================================
 
   const transitionOneRenderer =
@@ -247,38 +247,80 @@ document.addEventListener("DOMContentLoaded", async () => {
     );
 
 
+
   // ============================================================
   // TRANSITION 2
-  // BLUE NOISE DUST
+  // YELLOW ORGANIC REVEAL
+  //
+  // Compatibility name is still BlueNoiseDustTransition.
   // ============================================================
 
   const transitionTwoRenderer =
     new BlueNoiseDustTransition(
       transitionTwoCanvas,
       {
-        softness: 0.005,
+        // --------------------------------------------------------
+        // YELLOW WASH TIMING
+        // --------------------------------------------------------
 
-        noiseScale: 6.5,
+        yellowStart: 0.00,
 
-        noiseAmount: 0.09,
+        yellowEnd: 0.28,
 
-        dotScale: 2.6,
 
-        distortion: 0.006,
+        // --------------------------------------------------------
+        // ORGANIC OPENING TIMING
+        // --------------------------------------------------------
 
-        grain: 0.03,
+        revealStart: 0.18,
 
-        edgeWidth: 0.15,
+        revealEnd: 1.00,
 
-        edgeOpacity: 0.72,
 
-        edgeColor: [
-          0.91,
-          0.87,
-          0.78
-        ]
+        // --------------------------------------------------------
+        // POSITION
+        // --------------------------------------------------------
+
+        centerX: 0.56,
+
+        centerY: 0.48,
+
+
+        // --------------------------------------------------------
+        // ORGANIC SHAPE
+        // --------------------------------------------------------
+
+        openingScale: 1.10,
+
+        softness: 0.095,
+
+        edgeIrregularity: 0.12,
+
+
+        shapeStretchX: 1.18,
+
+        shapeStretchY: 0.88,
+
+
+        // --------------------------------------------------------
+        // MATERIAL / TEXTURE
+        // --------------------------------------------------------
+
+        paperNoise: 0.035,
+
+        vignette: 0.18,
+
+
+        // --------------------------------------------------------
+        // YELLOW
+        // --------------------------------------------------------
+
+        yellowColor: "#efe7d1",
+
+        yellowOpacity: 0.72
       }
     );
+
 
 
   // ============================================================
@@ -286,6 +328,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // ============================================================
 
   function resizeAll() {
+
     heroRenderer.resize();
 
     sectionTwoRenderer.resize();
@@ -294,13 +337,18 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     transitionTwoRenderer.resize();
 
-    window.PerlinRevealRegistry?.resize();
 
-    window.DottedTransitionRegistry?.resize();
+    window.PerlinRevealRegistry
+      ?.resize();
+
+
+    window.DottedTransitionRegistry
+      ?.resize();
   }
 
 
   resizeAll();
+
 
 
   // ============================================================
@@ -315,7 +363,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   );
 
 
-  if (heroInitialFrame) {
+
+  if (
+    heroInitialFrame
+  ) {
+
     gsap.set(
       heroInitialFrame,
       {
@@ -323,6 +375,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     );
   }
+
 
 
   gsap.set(
@@ -333,6 +386,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   );
 
 
+
   gsap.set(
     sectionTwoInner,
     {
@@ -341,15 +395,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   );
 
 
+
   gsap.set(
     sectionTwoTexts,
     {
       opacity: 0,
 
       xPercent:
-        CONFIG.sectionTwo.textStartX
+        CONFIG.sectionTwo
+          .textStartX
     }
   );
+
 
 
   gsap.set(
@@ -360,12 +417,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   );
 
 
+
   gsap.set(
     transitionTwoCanvas,
     {
       autoAlpha: 0
     }
   );
+
 
 
   gsap.set(
@@ -376,6 +435,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   );
 
 
+
   gsap.set(
     sectionThree,
     {
@@ -384,7 +444,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   );
 
 
-  if (sectionThreeToFourCanvas) {
+
+  if (
+    sectionThreeToFourCanvas
+  ) {
+
     gsap.set(
       sectionThreeToFourCanvas,
       {
@@ -394,7 +458,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
 
-  if (sectionFour) {
+
+  if (
+    sectionFour
+  ) {
+
     gsap.set(
       sectionFour,
       {
@@ -404,8 +472,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
 
+
   // ============================================================
-  // LOADED ASSETS
+  // LOADED IMAGES
   // ============================================================
 
   let heroFirst;
@@ -421,18 +490,22 @@ document.addEventListener("DOMContentLoaded", async () => {
   let finalViewportCrop;
 
 
+
   // ============================================================
-  // FINAL SECTION 2 VIEWPORT CROP
+  // CAPTURE FINAL TALL IMAGE VIEWPORT
   // ============================================================
 
   function captureFinalViewportCrop() {
+
     const viewportWidth =
-      pin.clientWidth ||
+      pin.clientWidth
+      ||
       innerWidth;
 
 
     const viewportHeight =
-      pin.clientHeight ||
+      pin.clientHeight
+      ||
       innerHeight;
 
 
@@ -452,7 +525,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         : Math.min(
             devicePixelRatio || 1,
 
-            CONFIG.performance.desktopDPR
+            CONFIG.performance
+              .desktopDPR
           );
 
 
@@ -479,7 +553,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 
     const context =
-      cropCanvas.getContext("2d");
+      cropCanvas.getContext(
+        "2d"
+      );
 
 
     const naturalWidth =
@@ -500,12 +576,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       renderedScale;
 
 
+
     /*
-     * The image ends at the bottom
-     * of the pinned viewport.
-     *
-     * Capture exactly the final
-     * visible viewport.
+     * Tall image finishes aligned
+     * with bottom of pinned viewport.
      */
 
     const visibleRenderedHeight =
@@ -529,6 +603,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       );
 
 
+
     context.drawImage(
       tallImage,
 
@@ -550,33 +625,41 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
 
+
   // ============================================================
-  // INITIAL LOAD
+  // INITIALIZE EXPERIENCE
   // ============================================================
 
   try {
 
     // ----------------------------------------------------------
-    // HERO FIRST FRAME
+    // HERO FIRST
     // ----------------------------------------------------------
 
     heroFirst =
-      await heroSource.initialize();
+      await heroSource
+        .initialize();
+
 
 
     // ----------------------------------------------------------
-    // HERO LAST FRAME
+    // HERO LAST
     // ----------------------------------------------------------
 
     heroLast =
-      await heroSource.request(
-        CONFIG.hero.frameCount - 1,
-        3000000
-      );
+      await heroSource
+        .request(
+
+          CONFIG.hero.frameCount -
+          1,
+
+          3000000
+        );
+
 
 
     // ----------------------------------------------------------
-    // SECTION 2 TALL IMAGE
+    // TALL IMAGE
     // ----------------------------------------------------------
 
     tallImage =
@@ -585,23 +668,33 @@ document.addEventListener("DOMContentLoaded", async () => {
       );
 
 
+
     // ----------------------------------------------------------
-    // SECTION 2 SEQUENCE FIRST FRAME
+    // SECOND SEQUENCE FIRST
     // ----------------------------------------------------------
 
     sequenceFirst =
-      await sectionTwoSource.initialize();
+      await sectionTwoSource
+        .initialize();
+
 
 
     // ----------------------------------------------------------
-    // SECTION 2 SEQUENCE LAST FRAME
+    // SECOND SEQUENCE LAST
     // ----------------------------------------------------------
 
     sequenceLast =
-      await sectionTwoSource.request(
-        CONFIG.sectionTwoSequence.frameCount - 1,
-        3000000
-      );
+      await sectionTwoSource
+        .request(
+
+          CONFIG
+            .sectionTwoSequence
+            .frameCount -
+          1,
+
+          3000000
+        );
+
 
 
     // ----------------------------------------------------------
@@ -613,7 +706,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     );
 
 
-    if (heroInitialFrame) {
+
+    if (
+      heroInitialFrame
+    ) {
+
       gsap.to(
         heroInitialFrame,
         {
@@ -627,8 +724,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
 
+
     // ----------------------------------------------------------
-    // DRAW SECTION 2 SEQUENCE FIRST FRAME
+    // PRE-DRAW SECOND SEQUENCE
     // ----------------------------------------------------------
 
     sectionTwoRenderer.draw(
@@ -636,72 +734,86 @@ document.addEventListener("DOMContentLoaded", async () => {
     );
 
 
+
     // ----------------------------------------------------------
-    // TRANSITION 1 IMAGES
+    // TRANSITION 1
     //
-    // Hero final frame
-    //       ↓
-    // Tall section image
+    // Hero last frame → Tall image
     // ----------------------------------------------------------
 
-    transitionOneRenderer.setImages(
-      heroLast,
-      tallImage
-    );
+    transitionOneRenderer
+      .setImages(
+        heroLast,
+        tallImage
+      );
+
 
 
     // ----------------------------------------------------------
-    // CREATE FINAL VIEWPORT CROP
+    // FINAL TALL IMAGE VIEW
     // ----------------------------------------------------------
 
     finalViewportCrop =
       captureFinalViewportCrop();
 
 
+
     // ----------------------------------------------------------
-    // TRANSITION 2 IMAGES
+    // TRANSITION 2
     //
-    // Tall-image final crop
-    //       ↓
-    // Sequence 2 frame 001
+    // Tall final viewport
+    // →
+    // Sequence frame 001
     // ----------------------------------------------------------
 
-    transitionTwoRenderer.setImages(
-      finalViewportCrop,
-      sequenceFirst
-    );
+    transitionTwoRenderer
+      .setImages(
+        finalViewportCrop,
+        sequenceFirst
+      );
 
-  } catch (error) {
+
+  } catch (
+    error
+  ) {
 
     console.error(
       "[preview] Initialization failed:",
       error
     );
 
+
     return;
   }
 
 
+
   // ============================================================
-  // ATTRIBUTE-BASED REVEAL ENGINES
+  // WAIT FOR OTHER EFFECT ENGINES
   // ============================================================
 
   if (
     window.PerlinRevealReady
   ) {
-    await window.PerlinRevealReady;
+
+    await window
+      .PerlinRevealReady;
   }
+
 
 
   if (
     window.DottedTransitionReady
   ) {
-    await window.DottedTransitionReady;
+
+    await window
+      .DottedTransitionReady;
   }
 
 
+
   // ============================================================
-  // DRAW SEQUENCE
+  // DRAW SEQUENCE FRAME
   // ============================================================
 
   function drawSequence(
@@ -713,7 +825,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const frame =
       Math.round(
-        progress *
+
+        progress
+
+        *
+
         (
           sourceConfig.frameCount -
           1
@@ -721,9 +837,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       );
 
 
+
     source.prioritize(
       frame
     );
+
 
 
     const nearest =
@@ -732,11 +850,16 @@ document.addEventListener("DOMContentLoaded", async () => {
       );
 
 
-    if (nearest) {
+
+    if (
+      nearest
+    ) {
+
       renderer.draw(
         nearest
       );
     }
+
 
 
     source
@@ -748,8 +871,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         exact => {
 
           if (
-            exact &&
-            source.currentFrame === frame
+            exact
+
+            &&
+
+            source.currentFrame ===
+              frame
           ) {
 
             renderer.draw(
@@ -761,8 +888,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
 
+
   // ============================================================
-  // SECTION 2 TALL IMAGE SCROLL
+  // TALL SECTION
   // ============================================================
 
   function renderTallSection(
@@ -771,7 +899,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const contentHeight =
       Math.max(
-        sectionTwoInner.scrollHeight,
+
+        sectionTwoInner
+          .scrollHeight,
 
         sectionTwoInner
           .getBoundingClientRect()
@@ -779,18 +909,23 @@ document.addEventListener("DOMContentLoaded", async () => {
       );
 
 
+
     const viewportHeight =
-      pin.clientHeight ||
+      pin.clientHeight
+      ||
       innerHeight;
+
 
 
     const maxTravel =
       Math.max(
+
         0,
 
         contentHeight -
         viewportHeight
       );
+
 
 
     gsap.set(
@@ -803,77 +938,110 @@ document.addEventListener("DOMContentLoaded", async () => {
     );
 
 
-    sectionTwoTexts.forEach(
-      (text, index) => {
 
-        const count =
-          sectionTwoTexts.length;
-
-
-        const local =
-          rangeProgress(
-            progress,
-
-            index /
-            count,
-
-            (index + 1) /
-            count
-          );
-
-
-        const enter =
-          rangeProgress(
-            local,
-
-            0,
-
-            CONFIG.sectionTwo
-              .textEnterPortion
-          );
-
-
-        const exit =
-          rangeProgress(
-            local,
-
-            CONFIG.sectionTwo
-              .textExitStart,
-
-            1
-          );
-
-
-        gsap.set(
+    sectionTwoTexts
+      .forEach(
+        (
           text,
-          {
-            opacity:
-              enter *
+          index
+        ) => {
+
+          const count =
+            sectionTwoTexts
+              .length;
+
+
+
+          const local =
+            rangeProgress(
+
+              progress,
+
+              index /
+              count,
+
               (
-                1 -
-                exit
-              ),
-
-            xPercent:
-
-              gsap.utils.interpolate(
-                CONFIG.sectionTwo.textStartX,
-                0,
-                enter
+                index +
+                1
               )
+              /
+              count
+            );
 
-              +
 
-              gsap.utils.interpolate(
-                0,
-                CONFIG.sectionTwo.textExitX,
-                exit
-              )
-          }
-        );
-      }
-    );
+
+          const enter =
+            rangeProgress(
+
+              local,
+
+              0,
+
+              CONFIG
+                .sectionTwo
+                .textEnterPortion
+            );
+
+
+
+          const exit =
+            rangeProgress(
+
+              local,
+
+              CONFIG
+                .sectionTwo
+                .textExitStart,
+
+              1
+            );
+
+
+
+          gsap.set(
+            text,
+            {
+              opacity:
+                enter *
+                (
+                  1 -
+                  exit
+                ),
+
+
+              xPercent:
+
+                gsap.utils
+                  .interpolate(
+
+                    CONFIG
+                      .sectionTwo
+                      .textStartX,
+
+                    0,
+
+                    enter
+                  )
+
+                +
+
+                gsap.utils
+                  .interpolate(
+
+                    0,
+
+                    CONFIG
+                      .sectionTwo
+                      .textExitX,
+
+                    exit
+                  )
+            }
+          );
+        }
+      );
   }
+
 
 
   // ============================================================
@@ -888,8 +1056,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       CONFIG.sectionTwoLayout;
 
 
+
     const layoutProgress =
       rangeProgress(
+
         totalProgress,
 
         layout.start,
@@ -898,36 +1068,57 @@ document.addEventListener("DOMContentLoaded", async () => {
       );
 
 
+
     const left =
-      gsap.utils.interpolate(
-        0,
-        layout.left,
-        layoutProgress
-      );
+      gsap.utils
+        .interpolate(
+
+          0,
+
+          layout.left,
+
+          layoutProgress
+        );
+
 
 
     const top =
-      gsap.utils.interpolate(
-        0,
-        layout.top,
-        layoutProgress
-      );
+      gsap.utils
+        .interpolate(
+
+          0,
+
+          layout.top,
+
+          layoutProgress
+        );
+
 
 
     const width =
-      gsap.utils.interpolate(
-        100,
-        layout.width,
-        layoutProgress
-      );
+      gsap.utils
+        .interpolate(
+
+          100,
+
+          layout.width,
+
+          layoutProgress
+        );
+
 
 
     const height =
-      gsap.utils.interpolate(
-        100,
-        layout.height,
-        layoutProgress
-      );
+      gsap.utils
+        .interpolate(
+
+          100,
+
+          layout.height,
+
+          layoutProgress
+        );
+
 
 
     gsap.set(
@@ -948,8 +1139,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     );
 
 
-    sectionTwoRenderer.resize();
+
+    sectionTwoRenderer
+      .resize();
   }
+
 
 
   // ============================================================
@@ -978,7 +1172,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       true,
 
 
-    onUpdate(self) {
+
+    onUpdate(
+      self
+    ) {
 
       const rawP =
         self.progress;
@@ -988,19 +1185,20 @@ document.addEventListener("DOMContentLoaded", async () => {
         CONFIG.timeline;
 
 
+
       /*
-       * Existing Hero → Section 3 experience
-       * uses normalized progress.
-       *
-       * Final raw timeline portion is reserved
-       * for Section 3 → Section 4.
+       * Main experience normalized
+       * independently from final section transition.
        */
 
       const p =
         Math.min(
+
           1,
 
-          rawP /
+          rawP
+
+          /
 
           Math.max(
             0.001,
@@ -1010,8 +1208,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         );
 
 
+
       // ========================================================
-      // SECTION 3 PERLIN REVEAL
+      // PERLIN SECTION
       // ========================================================
 
       window.PerlinRevealRegistry
@@ -1020,8 +1219,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         );
 
 
+
       // ========================================================
-      // SECTION 3 → SECTION 4 DOTTED TRANSITION
+      // FINAL DOTTED SECTION 3 → 4
       // ========================================================
 
       window.DottedTransitionRegistry
@@ -1030,25 +1230,31 @@ document.addEventListener("DOMContentLoaded", async () => {
         );
 
 
+
       // ========================================================
-      // FINAL TRANSITION OWNS VISIBILITY
+      // FINAL EFFECT TAKES OVER
       // ========================================================
 
       if (
         rawP >=
-        CONFIG.sectionThreeToFour.revealStart
+        CONFIG
+          .sectionThreeToFour
+          .revealStart
       ) {
 
         if (
           p >=
-            t.finalHoldStart &&
+            t.finalHoldStart
+
+          &&
 
           sequenceLast
         ) {
 
-          sectionTwoRenderer.draw(
-            sequenceLast
-          );
+          sectionTwoRenderer
+            .draw(
+              sequenceLast
+            );
         }
 
 
@@ -1056,8 +1262,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
 
 
+
       // ========================================================
-      // 1. HERO IMAGE SEQUENCE
+      // 1. HERO SEQUENCE
       // ========================================================
 
       if (
@@ -1105,6 +1312,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         );
 
 
+
         gsap.set(
           sectionTwoSequenceCanvas,
           {
@@ -1121,7 +1329,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         );
 
 
+
         drawSequence(
+
           heroSource,
 
           heroRenderer,
@@ -1129,6 +1339,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           CONFIG.hero,
 
           rangeProgress(
+
             p,
 
             t.heroStart,
@@ -1142,10 +1353,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
 
 
+
       // ========================================================
-      // 2. TRANSITION ONE
-      //
-      // NEW CENTER REVEAL
+      // 2. TRANSITION 1
+      // ORIGINAL RECTANGLE REVEAL
       // ========================================================
 
       if (
@@ -1201,25 +1412,31 @@ document.addEventListener("DOMContentLoaded", async () => {
         );
 
 
-        transitionOneRenderer.progress =
-          rangeProgress(
-            p,
 
-            t.transitionOneStart,
+        transitionOneRenderer
+          .progress =
+            rangeProgress(
 
-            t.transitionOneEnd
-          );
+              p,
+
+              t.transitionOneStart,
+
+              t.transitionOneEnd
+            );
 
 
-        transitionOneRenderer.render();
+
+        transitionOneRenderer
+          .render();
 
 
         return;
       }
 
 
+
       // ========================================================
-      // 3. SECTION TWO TALL IMAGE
+      // 3. TALL IMAGE
       // ========================================================
 
       if (
@@ -1275,8 +1492,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         );
 
 
+
         renderTallSection(
+
           rangeProgress(
+
             p,
 
             t.sectionTwoStart,
@@ -1290,10 +1510,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
 
 
+
       // ========================================================
-      // 4. TRANSITION TWO
-      //
-      // BLUE-NOISE DUST
+      // 4. TRANSITION 2
+      // YELLOW ORGANIC REVEAL
       // ========================================================
 
       if (
@@ -1317,9 +1537,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         );
 
 
+
         /*
-         * Keep the actual tall image
-         * frozen at its final position.
+         * Keep final position of tall image behind the shader.
          */
 
         gsap.set(
@@ -1335,12 +1555,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         );
 
 
+
         gsap.set(
           sectionTwoSequenceCanvas,
           {
             autoAlpha: 0
           }
         );
+
 
 
         gsap.set(
@@ -1351,25 +1573,31 @@ document.addEventListener("DOMContentLoaded", async () => {
         );
 
 
-        transitionTwoRenderer.progress =
-          rangeProgress(
-            p,
 
-            t.transitionTwoStart,
+        transitionTwoRenderer
+          .progress =
+            rangeProgress(
 
-            t.transitionTwoEnd
-          );
+              p,
+
+              t.transitionTwoStart,
+
+              t.transitionTwoEnd
+            );
 
 
-        transitionTwoRenderer.render();
+
+        transitionTwoRenderer
+          .render();
 
 
         return;
       }
 
 
+
       // ========================================================
-      // 5. SECTION TWO IMAGE SEQUENCE
+      // 5. SECOND IMAGE SEQUENCE
       // ========================================================
 
       gsap.set(
@@ -1412,12 +1640,15 @@ document.addEventListener("DOMContentLoaded", async () => {
       );
 
 
+
       applySectionTwoLayout(
         p
       );
 
 
+
       drawSequence(
+
         sectionTwoSource,
 
         sectionTwoRenderer,
@@ -1425,6 +1656,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         CONFIG.sectionTwoSequence,
 
         rangeProgress(
+
           p,
 
           t.sectionTwoSequenceStart,
@@ -1434,27 +1666,26 @@ document.addEventListener("DOMContentLoaded", async () => {
       );
 
 
+
       // ========================================================
-      // SECTION THREE FADE
+      // SECTION 3
       // ========================================================
 
       const sectionThreeFade =
         rangeProgress(
+
           p,
 
-          CONFIG.sectionThree.fadeStart,
+          CONFIG
+            .sectionThree
+            .fadeStart,
 
-          CONFIG.sectionThree.fadeEnd
+          CONFIG
+            .sectionThree
+            .fadeEnd
         );
 
 
-      /*
-       * Only the Section 3 right-side panel
-       * fades here.
-       *
-       * Text visibility is controlled
-       * by the Perlin reveal engine.
-       */
 
       gsap.set(
         sectionThree,
@@ -1462,9 +1693,11 @@ document.addEventListener("DOMContentLoaded", async () => {
           opacity:
             sectionThreeFade,
 
+
           visibility:
 
-            sectionThreeFade <= 0.001
+            sectionThreeFade <=
+            0.001
 
               ? "hidden"
 
@@ -1473,23 +1706,28 @@ document.addEventListener("DOMContentLoaded", async () => {
       );
 
 
+
       // ========================================================
       // FINAL FRAME HOLD
       // ========================================================
 
       if (
         p >=
-          t.finalHoldStart &&
+          t.finalHoldStart
+
+        &&
 
         sequenceLast
       ) {
 
-        sectionTwoRenderer.draw(
-          sequenceLast
-        );
+        sectionTwoRenderer
+          .draw(
+            sequenceLast
+          );
       }
     }
   });
+
 
 
   // ============================================================
@@ -1510,6 +1748,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
 
 
+
     // ==========================================================
     // TIMELINE
     // ==========================================================
@@ -1520,12 +1759,17 @@ document.addEventListener("DOMContentLoaded", async () => {
       );
 
 
+
     timelineFolder
       .add(
         CONFIG.sectionTwoLayout,
+
         "start",
+
         0.72,
+
         0.95,
+
         0.001
       )
       .name(
@@ -1533,12 +1777,17 @@ document.addEventListener("DOMContentLoaded", async () => {
       );
 
 
+
     timelineFolder
       .add(
         CONFIG.sectionTwoLayout,
+
         "end",
+
         0.75,
+
         1,
+
         0.001
       )
       .name(
@@ -1546,52 +1795,178 @@ document.addEventListener("DOMContentLoaded", async () => {
       );
 
 
+
     // ==========================================================
-    // TRANSITION TWO CONTROLS
+    // YELLOW ORGANIC TRANSITION CONTROLS
     // ==========================================================
 
     const transitionFolder =
       gui.addFolder(
-        "Transition"
+        "Yellow Organic Reveal"
       );
+
 
 
     const s =
-      transitionTwoRenderer.settings;
+      transitionTwoRenderer
+        .settings;
 
-
-    transitionFolder
-      .add(
-        s,
-        "softness",
-        0.001,
-        0.25,
-        0.001
-      )
-      .name(
-        "Dissolve spread"
-      );
 
 
     transitionFolder
       .add(
         s,
-        "noiseScale",
-        0.5,
-        14,
-        0.1
-      )
-      .name(
-        "Edge shape scale"
-      );
 
+        "yellowStart",
 
-    transitionFolder
-      .add(
-        s,
-        "noiseAmount",
         0,
-        0.5,
+
+        0.8,
+
+        0.005
+      )
+      .name(
+        "Yellow start"
+      );
+
+
+
+    transitionFolder
+      .add(
+        s,
+
+        "yellowEnd",
+
+        0.05,
+
+        0.9,
+
+        0.005
+      )
+      .name(
+        "Yellow end"
+      );
+
+
+
+    transitionFolder
+      .add(
+        s,
+
+        "revealStart",
+
+        0,
+
+        0.9,
+
+        0.005
+      )
+      .name(
+        "Reveal start"
+      );
+
+
+
+    transitionFolder
+      .add(
+        s,
+
+        "revealEnd",
+
+        0.1,
+
+        1,
+
+        0.005
+      )
+      .name(
+        "Reveal end"
+      );
+
+
+
+    transitionFolder
+      .add(
+        s,
+
+        "centerX",
+
+        0,
+
+        1,
+
+        0.005
+      )
+      .name(
+        "Center X"
+      );
+
+
+
+    transitionFolder
+      .add(
+        s,
+
+        "centerY",
+
+        0,
+
+        1,
+
+        0.005
+      )
+      .name(
+        "Center Y"
+      );
+
+
+
+    transitionFolder
+      .add(
+        s,
+
+        "openingScale",
+
+        0.6,
+
+        1.8,
+
+        0.01
+      )
+      .name(
+        "Opening scale"
+      );
+
+
+
+    transitionFolder
+      .add(
+        s,
+
+        "softness",
+
+        0.01,
+
+        0.25,
+
+        0.005
+      )
+      .name(
+        "Softness"
+      );
+
+
+
+    transitionFolder
+      .add(
+        s,
+
+        "edgeIrregularity",
+
+        0,
+
+        0.35,
+
         0.005
       )
       .name(
@@ -1599,142 +1974,118 @@ document.addEventListener("DOMContentLoaded", async () => {
       );
 
 
+
     transitionFolder
       .add(
         s,
-        "dotScale",
+
+        "shapeStretchX",
+
         0.5,
-        5,
-        0.05
-      )
-      .name(
-        "Blue-noise dot scale"
-      );
 
+        1.8,
 
-    transitionFolder
-      .add(
-        s,
-        "distortion",
-        0,
-        0.08,
-        0.001
-      )
-      .name(
-        "Distortion"
-      );
-
-
-    transitionFolder
-      .add(
-        s,
-        "grain",
-        0,
-        0.12,
-        0.001
-      )
-      .name(
-        "Film grain"
-      );
-
-
-    transitionFolder
-      .add(
-        s,
-        "edgeWidth",
-        0.01,
-        0.35,
-        0.005
-      )
-      .name(
-        "Dust band width"
-      );
-
-
-    transitionFolder
-      .add(
-        s,
-        "edgeOpacity",
-        0,
-        1.5,
         0.01
       )
       .name(
-        "Edge opacity"
+        "Shape stretch X"
       );
 
 
-    const edgeColorProxy = {
-      color:
-        "#e8dec7"
-    };
+
+    transitionFolder
+      .add(
+        s,
+
+        "shapeStretchY",
+
+        0.5,
+
+        1.8,
+
+        0.01
+      )
+      .name(
+        "Shape stretch Y"
+      );
+
+
+
+    transitionFolder
+      .add(
+        s,
+
+        "paperNoise",
+
+        0,
+
+        0.12,
+
+        0.005
+      )
+      .name(
+        "Paper grain"
+      );
+
+
+
+    transitionFolder
+      .add(
+        s,
+
+        "vignette",
+
+        0,
+
+        0.5,
+
+        0.01
+      )
+      .name(
+        "Vignette"
+      );
+
 
 
     transitionFolder
       .addColor(
-        edgeColorProxy,
-        "color"
+        s,
+
+        "yellowColor"
       )
       .name(
-        "Edge color"
+        "Yellow color"
       )
       .onChange(
-        value => {
+        () => {
 
-          const hex =
-            value.replace(
-              "#",
-              ""
-            );
-
-
-          const r =
-            parseInt(
-              hex.slice(
-                0,
-                2
-              ),
-              16
-            ) /
-            255;
-
-
-          const g =
-            parseInt(
-              hex.slice(
-                2,
-                4
-              ),
-              16
-            ) /
-            255;
-
-
-          const b =
-            parseInt(
-              hex.slice(
-                4,
-                6
-              ),
-              16
-            ) /
-            255;
-
-
-          s.edgeColor = [
-            r,
-            g,
-            b
-          ];
-
-
-          transitionTwoRenderer.render();
+          transitionTwoRenderer
+            .render();
         }
       );
 
 
+
+    transitionFolder
+      .add(
+        s,
+
+        "yellowOpacity",
+
+        0,
+
+        1,
+
+        0.01
+      )
+      .name(
+        "Yellow opacity"
+      );
+
+
+
     // ==========================================================
-    // SECTION TWO LAYOUT
+    // SECOND SEQUENCE LAYOUT
     // ==========================================================
 
     const layoutFolder =
@@ -1743,16 +2094,22 @@ document.addEventListener("DOMContentLoaded", async () => {
       );
 
 
+
     const layout =
       CONFIG.sectionTwoLayout;
+
 
 
     layoutFolder
       .add(
         layout,
+
         "left",
+
         0,
+
         30,
+
         0.5
       )
       .name(
@@ -1760,12 +2117,17 @@ document.addEventListener("DOMContentLoaded", async () => {
       );
 
 
+
     layoutFolder
       .add(
         layout,
+
         "top",
+
         0,
+
         30,
+
         0.5
       )
       .name(
@@ -1773,12 +2135,17 @@ document.addEventListener("DOMContentLoaded", async () => {
       );
 
 
+
     layoutFolder
       .add(
         layout,
+
         "width",
+
         20,
+
         100,
+
         0.5
       )
       .name(
@@ -1786,12 +2153,17 @@ document.addEventListener("DOMContentLoaded", async () => {
       );
 
 
+
     layoutFolder
       .add(
         layout,
+
         "height",
+
         30,
+
         100,
+
         0.5
       )
       .name(
@@ -1799,11 +2171,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       );
 
 
+
     timelineFolder.open();
 
     transitionFolder.open();
 
     layoutFolder.open();
+
 
 
     window.PerlinRevealRegistry
@@ -1818,19 +2192,23 @@ document.addEventListener("DOMContentLoaded", async () => {
       );
 
 
+
     window.EXPERIENCE_GUI =
       gui;
   }
 
 
+
   // ============================================================
-  // WINDOW RESIZE
+  // RESIZE
   // ============================================================
 
   let resizeTimer;
 
 
+
   addEventListener(
+
     "resize",
 
     () => {
@@ -1840,6 +2218,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       );
 
 
+
       resizeTimer =
         setTimeout(
           () => {
@@ -1847,17 +2226,24 @@ document.addEventListener("DOMContentLoaded", async () => {
             resizeAll();
 
 
+
             finalViewportCrop =
               captureFinalViewportCrop();
 
 
-            transitionTwoRenderer.setImages(
-              finalViewportCrop,
-              sequenceFirst
-            );
+
+            transitionTwoRenderer
+              .setImages(
+
+                finalViewportCrop,
+
+                sequenceFirst
+              );
 
 
-            ScrollTrigger.refresh();
+
+            ScrollTrigger
+              .refresh();
 
           },
 
@@ -1871,17 +2257,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   );
 
 
+
   // ============================================================
-  // INITIAL SCROLLTRIGGER SYNC
+  // INITIAL SYNC
   // ============================================================
 
   requestAnimationFrame(
     () => {
 
-      ScrollTrigger.refresh();
+      ScrollTrigger
+        .refresh();
 
-      ScrollTrigger.update();
 
+      ScrollTrigger
+        .update();
     }
   );
 
